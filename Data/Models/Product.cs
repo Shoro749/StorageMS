@@ -8,16 +8,18 @@ namespace Data.Models
         [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
-        [Required, StringLength(256)]
+        [Required, StringLength(128)]
         public string Name { get; set; }
 
-        /* 
-         * Артикул
-         * Од. виміру
-         * Інтеграції
-         * Залишок
-         * Закупка
-         * Роздрібна
-         */
+        [StringLength(256)]
+        public string Description { get; set; }
+
+        [Required, StringLength(32)]
+        public string Unit { get; set; }
+
+        [Required, Column(TypeName = "decimal(10, 2)")]
+        public decimal Stock { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

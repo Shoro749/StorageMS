@@ -3,17 +3,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Data.Models
 {
-    public class User
+    public class OutgoingRequest
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
-        [Required, StringLength(256)]
-        public string Name { get; set; }
+        [Required, StringLength(128)]
+        public string Status { get; set; }
 
-        [Required, StringLength(256)]
-        public string PasswordHash { get; set; }
-        
-        public Role Role { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public User CreatedBy { get; set; }
     }
 }

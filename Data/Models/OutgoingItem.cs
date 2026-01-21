@@ -3,17 +3,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Data.Models
 {
-    public class User
+    public class OutgoingItem
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
-        [Required, StringLength(256)]
-        public string Name { get; set; }
+        [Required, Column(TypeName = "decimal(10, 2)")]
+        public decimal Quantity { get; set; }
 
-        [Required, StringLength(256)]
-        public string PasswordHash { get; set; }
-        
-        public Role Role { get; set; }
+        public OutgoingRequest Request { get; set; }
+
+        public Product Product { get; set; }
     }
 }

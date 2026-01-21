@@ -9,6 +9,11 @@ namespace Data.Models
         public int Id { get; set; }
 
         [Required, StringLength(256)]
-        public string Name { get; set; }
+        public string Action { get; set; }
+
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public User User { get; set; }
     }
 }

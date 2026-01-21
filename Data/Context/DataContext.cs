@@ -14,6 +14,12 @@ namespace Data.Context
             base.OnConfiguring(optionsBuilder);
         }
 
+        public DbSet<ActionLog> ActionLogs => Set<ActionLog>();
+        public DbSet<Incoming> Incomings => Set<Incoming>();
+        public DbSet<OutgoingItem> OutgoingItems => Set<OutgoingItem>();
+        public DbSet<OutgoingRequest> OutgoingRequests => Set<OutgoingRequest>();
+        public DbSet<Product> Products => Set<Product>();
+        public DbSet<Role> Roles => Set<Role>();
         public DbSet<User> Users => Set<User>();
     }
 }
