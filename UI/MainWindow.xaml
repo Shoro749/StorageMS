@@ -36,7 +36,8 @@
                            Margin="0,5,0,30"/>
 
                 <TextBlock Text="Логін" Foreground="#A0A0A0" Margin="0,10,0,5"/>
-                <TextBox Background="#2D2D2D" 
+                <TextBox x:Name="tb_login"
+                         Background="#2D2D2D" 
                          Foreground="White" 
                          BorderThickness="0" 
                          Padding="10,8" 
@@ -44,7 +45,8 @@
                          CaretBrush="#D2B48C"/>
 
                 <TextBlock Text="Пароль" Foreground="#A0A0A0" Margin="0,15,0,5"/>
-                <PasswordBox Background="#2D2D2D" 
+                <PasswordBox x:Name="tb_password"
+                             Background="#2D2D2D" 
                              Foreground="White" 
                              BorderThickness="0" 
                              Padding="10,8" 
@@ -57,7 +59,7 @@
                         Background="#D2B48C" 
                         Foreground="#1E1E1E" 
                         FontWeight="Bold"
-                        Cursor="Hand">
+                        Cursor="Hand" Click="Login_Click">
                     <Button.Resources>
                         <Style TargetType="Border">
                             <Setter Property="CornerRadius" Value="5"/>
