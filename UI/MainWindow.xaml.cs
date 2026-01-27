@@ -1,9 +1,12 @@
 ﻿using Data.Context;
 using Data.Models;
+using Repository.Interfaces;
+using Repository.Repositories;
 using Service.Interfaces;
 using Service.Services;
 using System.Threading.Tasks;
 using System.Windows;
+using UI.Windows;
 
 namespace UI
 {
@@ -19,9 +22,10 @@ namespace UI
             InitializeComponent();
             _context = new DataContext();
             _userService = new UserService(_context);
+            // Seeder();
         }
 
-        private async Task Login_Click(object sender, RoutedEventArgs e)
+        private async void Login_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -48,12 +52,47 @@ namespace UI
                     return;
                 }
 
-                //GeneralWindow generalWindow = new GeneralWindow(_context, user);
-                //Application.Current.MainWindow = generalWindow;
-                //generalWindow.Show();
-                //this.Close();
+                switch (user.Role.Name)
+                {
+                    case "Admin":
+                        AdminWindow adminWindow = new AdminWindow(user, _context);
+                        Application.Current.MainWindow = adminWindow;
+                        adminWindow.Show();
+                        break;
+
+                    case "Manager":
+                        break;
+
+                    case "Storekeeper":
+                        break;
+                }
+                this.Close();
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
+
+        private async Task Seeder()
+        {
+            try
+            {
+                IRepository<Role> roleRepo = new Repository<Role>(_context);
+
+                Role role1 = new Role { Name = "Admin" };
+                Role role2 = new Role { Name = "Manager" };
+                Role role3 = new Role { Name = "Storekeeper" };
+
+                User admin = new User
+                {
+                    Name = "admin",
+                    PasswordHash = PasswordHasher.HashPassword("admin"),
+                    Role = role1,
+                };
+
+                await _userService.CreateAsync(admin);
+                await roleRepo.AddAsync(role2);
+                await roleRepo.AddAsync(role3);
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message); }
+        } 
     }
 }

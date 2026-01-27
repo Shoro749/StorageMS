@@ -11,7 +11,7 @@ namespace Repository.Repositories
 
         public async Task<User> GetByUsername(string username)
         {
-            return await _dbSet.FirstOrDefaultAsync(u => u.Name == username);
+            return await _dbSet.Include(u => u.Role).FirstOrDefaultAsync(u => u.Name == username);
         }
     }
 }
