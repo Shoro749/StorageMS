@@ -62,12 +62,7 @@
                             <TextBox Width="250" Height="35" Background="#1E1E1E" Foreground="White" 
                                  BorderBrush="#333333" Padding="10,5" VerticalContentAlignment="Center"/>
 
-                            <ComboBox Width="150" Height="35" Margin="10,0" SelectedIndex="0">
-                                <ComboBoxItem Content="Всі ролі"/>
-                                <ComboBoxItem Content="Адмін"/>
-                                <ComboBoxItem Content="Менеджер"/>
-                                <ComboBoxItem Content="Комірник"/>
-                            </ComboBox>
+                            <ComboBox x:Name="cb_filterRoles" Width="150" Height="35" Margin="10,0" SelectedIndex="0"/>
 
                             <Button Content="+ ДОДАТИ" Background="#D2B48C" Foreground="#1E1E1E" 
                                 Padding="20,0" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>
@@ -120,29 +115,25 @@
                             </Grid>
 
                             <TextBlock Text="Повне ім'я" Foreground="#888888" Margin="0,10,0,5"/>
-                            <TextBox Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
+                            <TextBox x:Name="tb_name" Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
 
                             <TextBlock Text="Роль" Foreground="#888888" Margin="0,15,0,5"/>
-                            <ComboBox HorizontalAlignment="Stretch">
-                                <ComboBoxItem Content="Адмін"/>
-                                <ComboBoxItem Content="Менеджер"/>
-                                <ComboBoxItem Content="Комірник"/>
-                            </ComboBox>
+                            <ComboBox x:Name="cb_userRole" HorizontalAlignment="Stretch"/>
 
                             <TextBlock Text="Новий пароль" Foreground="#888888" Margin="0,15,0,5"/>
-                            <PasswordBox Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
+                            <PasswordBox x:Name="pb_userPassword" Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
 
                             <UniformGrid Columns="2" Margin="0,40,0,0">
                                 <Button Content="ЗБЕРЕГТИ" Background="#D2B48C" Margin="0,0,5,0" Height="40" 
-                                    BorderThickness="0" FontWeight="Bold" Foreground="#1E1E1E"/>
+                                    BorderThickness="0" FontWeight="Bold" Foreground="#1E1E1E" Click="EditUser_Click"/>
                                 <Button Content="ВИДАЛИТИ" Background="#442222" Foreground="#FF6666" 
-                                    Margin="5,0,0,0" Height="40" BorderThickness="0"/>
+                                    Margin="5,0,0,0" Height="40" BorderThickness="0" Click="DeleteUser_Click"/>
                             </UniformGrid>
                         </StackPanel>
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem Header="СКЛАД"/>
+            <TabItem Header="ЛОГИ"/>
         </TabControl>
     </Grid>
 </Window>
