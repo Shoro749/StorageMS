@@ -13,5 +13,10 @@ namespace Repository.Repositories
         {
             return await _dbSet.Include(u => u.Role).FirstOrDefaultAsync(u => u.Name == username);
         }
+
+        //public override async Task<List<User>> GetAllAsync()
+        //{
+        //    return await _dbSet.Include(u => u.Role).ToListAsync();
+        //}
     }
 }
