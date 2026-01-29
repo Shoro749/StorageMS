@@ -27,9 +27,9 @@ namespace Repository.Repositories
 
         public async Task<T> AddAsync(T item)
         {
-            await _dbSet.AddAsync(item);
+            var entry = await _dbSet.AddAsync(item);
             await _context.SaveChangesAsync();
-            return item;
+            return entry.Entity;
         }
 
         public async Task<T?> UpdateAsync(int id, T item)
@@ -38,8 +38,10 @@ namespace Repository.Repositories
             if (existing == null) return null;
 
             _context.Entry(existing).CurrentValues.SetValues(item);
+            _context.Entry(existing).State = EntityState.Modified;
+
             await _context.SaveChangesAsync();
-            return item;
+            return existing;
         }
 
         public async Task<bool> DeleteAsync(int id)
