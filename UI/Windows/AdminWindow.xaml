@@ -60,9 +60,9 @@
 
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
                             <TextBox x:Name="tb_userNameSearch" Width="250" Height="35" Background="#1E1E1E" Foreground="White" 
-                                 BorderBrush="#333333" Padding="10,5" VerticalContentAlignment="Center" IsEnabledChanged="SearchChanged"/>
+                                 BorderBrush="#333333" Padding="10,5" VerticalContentAlignment="Center" SelectionChanged="OnFilterChanged"/>
 
-                            <ComboBox x:Name="cb_filterRoles" Width="150" Height="35" Margin="10,0" SelectedIndex="0" IsEnabledChanged="RoleFilterChanged"/>
+                            <ComboBox x:Name="cb_filterRoles" Width="150" Height="35" Margin="10,0" SelectedIndex="0" SelectionChanged="OnFilterChanged"/>
 
                             <Button Content="+ ДОДАТИ" Background="#D2B48C" Foreground="#1E1E1E" 
                                 Padding="20,0" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="CreateUser_Click"/>

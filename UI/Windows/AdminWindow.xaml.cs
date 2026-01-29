@@ -1,5 +1,6 @@
 ﻿using Data.Context;
 using Data.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Repository.Interfaces;
 using Repository.Repositories;
@@ -105,7 +106,7 @@ namespace UI.Windows
             else MessageBox.Show("Невдалося переглянути користувача!");
         }
 
-        private async Task EditUser_Click(object sender, RoutedEventArgs e)
+        private async void EditUser_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -113,7 +114,7 @@ namespace UI.Windows
                 string password = pb_userPassword.Password.Trim();
                 var role = cb_userRole.SelectedItem as Role;
 
-                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrEmpty(password))
+                if (string.IsNullOrWhiteSpace(name))
                 {
                     MessageBox.Show("The username or password cannot be empty.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
@@ -121,22 +122,36 @@ namespace UI.Windows
 
                 var existingUser = await _userService.GetByUsername(name);
 
-                if (existingUser != null && existingUser.Id == _chosenUser.Id)
+                if (existingUser != null && existingUser.Id != _chosenUser.Id)
                 {
                     MessageBox.Show($"The user with name {name} is already exists.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                var newUser = new User
+                User newUser;
+                if (string.IsNullOrEmpty(password))
                 {
-                    Id = _chosenUser.Id,
-                    Name = name,
-                    PasswordHash = PasswordHasher.HashPassword(password),
-                    Role = role,
-                };
+                    newUser = new User
+                    {
+                        Id = _chosenUser.Id,
+                        Name = name,
+                        PasswordHash = PasswordHasher.HashPassword(password),
+                        Role = role,
+                    };
+                }
+                else
+                {
+                    newUser = new User
+                    {
+                        Id = _chosenUser.Id,
+                        Name = name,
+                        PasswordHash = _chosenUser.PasswordHash,
+                        Role = role,
+                    };
+                }  
 
                 var updatedUser = await _userService.UpdateAsync(newUser.Id, newUser);
-                await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has updated user {name} -> {updatedUser.Name}." });
+                await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has updated user {name} -> {updatedUser.Name}.", User = _currentUser });
 
                 _users.Remove(_chosenUser);
                 _users.Add(updatedUser);
@@ -151,18 +166,23 @@ namespace UI.Windows
             catch (Exception ex )
             {
                 MessageBox.Show($"Error with editting user: {ex.Message}");
+                return;
             }
         }
 
-        private async Task DeleteUser_Click(object sender, RoutedEventArgs e)
+        private async void DeleteUser_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 await _userService.DeleteAsync(_chosenUser.Id);
-                await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has deleted user {_chosenUser.Name}." });
+                await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has deleted user {_chosenUser.Name}.", User = _currentUser });
 
                 _users.Remove(_chosenUser);
+                _users.Remove(_chosenUser);
                 _chosenUser = null;
+
+                UpdateUserList(_users);
+
                 b_detailsPanel.Visibility = Visibility.Collapsed;
                 
                 MessageBox.Show("User was successfully deleted!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -179,7 +199,7 @@ namespace UI.Windows
             cb_createRole.SelectedIndex = 2;
         }
 
-        private async Task ConfirmCreateUser_Click(object sender, RoutedEventArgs e)
+        private async void ConfirmCreateUser_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -214,7 +234,7 @@ namespace UI.Windows
                 };
 
                 var createdUser = await _userService.CreateAsync(newUser);
-                await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has created new user {name}." });
+                await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has created new user {name}.", User = _currentUser });
                 _users.Add(createdUser);
                 b_createUserPanel.Visibility = Visibility.Collapsed;
                 
@@ -222,9 +242,14 @@ namespace UI.Windows
 
                 MessageBox.Show("User was successfully created!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (Exception ex)
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show($"Невдалося створити користувача: {ex.Message}");
+            //}
+            catch (DbUpdateException ex)
             {
-                MessageBox.Show($"Невдалося створити користувача: {ex.Message}");
+                var message = ex.InnerException?.Message ?? ex.Message;
+                MessageBox.Show($"Помилка бази даних: {message}");
             }
         }
 
@@ -233,37 +258,62 @@ namespace UI.Windows
             b_createUserPanel.Visibility = Visibility.Collapsed;
         }
 
-        private void RoleFilterChanged(object sender, DependencyPropertyChangedEventArgs e)
+        //private void RoleFilterChanged(object sender, DependencyPropertyChangedEventArgs e)
+        //{
+        //    if (cb_filterRoles == null || _users == null) return;
+
+        //    var selected = cb_filterRoles.SelectedItem;
+        //    if (selected == null) return;
+
+        //    string roleName = selected.GetType().GetProperty("Name")?.GetValue(selected)?.ToString();
+
+        //    if (string.IsNullOrEmpty(roleName) || roleName == "Всі ролі")
+        //    {
+        //        UpdateUserList(_users);
+        //    }
+        //    else
+        //    {
+        //        var filteredUsers = _users
+        //            .Where(u => u.Role != null && u.Role.Name == roleName)
+        //            .ToList();
+        //        UpdateUserList(filteredUsers);
+        //    }
+        //}
+
+        //private void SearchChanged(object sender, DependencyPropertyChangedEventArgs e)
+        //{
+        //    string text = tb_userNameSearch.Text.Trim().ToLower();
+
+        //    if (string.IsNullOrEmpty(text)) return;
+
+        //    var filteredUsers = _users.Where(u => u.Name != null && u.Name.ToLower().Contains(text)).ToList();
+
+        //    UpdateUserList(filteredUsers);
+        //}
+
+        private void OnFilterChanged(object sender, EventArgs e)
         {
-            if (cb_filterRoles == null || _users == null) return;
+            if (tb_userNameSearch == null || cb_filterRoles == null || _users == null) return;
 
-            var selected = cb_filterRoles.SelectedItem;
-            if (selected == null) return;
-
-            string roleName = selected.GetType().GetProperty("Name")?.GetValue(selected)?.ToString();
-
-            if (string.IsNullOrEmpty(roleName) || roleName == "Всі ролі")
-            {
-                UpdateUserList(_users);
-            }
-            else
-            {
-                var filteredUsers = _users
-                    .Where(u => u.Role != null && u.Role.Name == roleName)
-                    .ToList();
-                UpdateUserList(filteredUsers);
-            }
+            ApplyFilters();
         }
 
-        private void SearchChanged(object sender, DependencyPropertyChangedEventArgs e)
+        private void ApplyFilters()
         {
-            string text = tb_userNameSearch.Text.Trim().ToLower();
+            string searchText = tb_userNameSearch.Text.ToLower().Trim();
 
-            if (string.IsNullOrEmpty(text)) return;
+            var selected = cb_filterRoles.SelectedItem;
+            string selectedRoleName = selected?.GetType().GetProperty("Name")?.GetValue(selected)?.ToString() ?? "Всі ролі";
 
-            var filteredUsers = _users.Where(u => u.Name != null && u.Name.ToLower().Contains(text)).ToList();
+            var filtered = _users.Where(u => { bool matchesName = string.IsNullOrEmpty(searchText) ||
+                                   (u.Name != null && u.Name.ToLower().Contains(searchText));
 
-            UpdateUserList(filteredUsers);
+                bool matchesRole = selectedRoleName == "Всі ролі" || (u.Role != null && u.Role.Name == selectedRoleName);
+
+                return matchesName && matchesRole;
+            }).ToList();
+
+            dg_userList.ItemsSource = filtered;
         }
     }
 }
