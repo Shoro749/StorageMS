@@ -20,6 +20,12 @@ namespace Data.Models
         [Required, Column(TypeName = "decimal(10, 2)")]
         public decimal Stock { get; set; }
 
+        [Column(TypeName = "decimal(10, 2)")]
+        public decimal MinimumStock { get; set; } = 0;
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [NotMapped]
+        public string Status => Stock == 0 ? "Out of stock" : Stock <= MinimumStock ? "Low" : "OK";
     }
 }

@@ -61,6 +61,9 @@ namespace UI
                         break;
 
                     case "Manager":
+                        ManagerWindow managerWindow = new ManagerWindow(user, _context);
+                        Application.Current.MainWindow = managerWindow;
+                        managerWindow.Show();
                         break;
 
                     case "Storekeeper":

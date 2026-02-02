@@ -74,7 +74,7 @@
                               CanUserAddRows="False" SelectionMode="Single">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="ПІБ" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Ім'я" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="Роль" Binding="{Binding Role.Name}" Width="150" IsReadOnly="True"/>
 
                                 <DataGridTemplateColumn Width="120">
@@ -169,6 +169,7 @@
                     </Border>
                 </Grid>
             </TabItem>
+            <TabItem Header="ЗВІТИ"/>
             <TabItem Header="ЛОГИ"/>
         </TabControl>
     </Grid>
