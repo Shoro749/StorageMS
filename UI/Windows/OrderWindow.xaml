@@ -9,47 +9,30 @@
         Background="#121212" WindowStartupLocation="CenterOwner" WindowStyle="None" AllowsTransparency="True">
     <Grid>
         <Grid.Resources>
-            <Style TargetType="DataGridColumnHeader">
-                <Setter Property="Background" Value="#1E1E1E"/>
-                <Setter Property="Foreground" Value="#D2B48C"/>
-                <Setter Property="Padding" Value="10,5"/>
-                <Setter Property="FontWeight" Value="Bold"/>
-                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                <Setter Property="BorderBrush" Value="#333333"/>
-            </Style>
-
-            <Style TargetType="ComboBox">
-                <Setter Property="Background" Value="#2D2D2D"/>
+            <Style x:Key="CommentTextBoxStyle" TargetType="TextBox">
+                <Setter Property="Background" Value="#252525"/>
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="BorderBrush" Value="#333333"/>
                 <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="Padding" Value="8,5"/>
+                <Setter Property="Padding" Value="10"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="CaretBrush" Value="#D2B48C"/>
                 <Setter Property="Template">
                     <Setter.Value>
-                        <ControlTemplate TargetType="ComboBox">
-                            <Grid>
-                                <Border x:Name="Border" Background="{TemplateBinding Background}" 
-                    BorderBrush="{TemplateBinding BorderBrush}" 
-                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5"/>
-
-                                <Grid Margin="{TemplateBinding Padding}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" VerticalAlignment="Center"/>
-                                    <Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#D2B48C" StrokeThickness="2" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                                </Grid>
-
-                                <Popup x:Name="PART_Popup" AllowsTransparency="True" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" Placement="Bottom">
-                                    <Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1" CornerRadius="5" MinWidth="{TemplateBinding ActualWidth}">
-                                        <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                                    </Border>
-                                </Popup>
-                            </Grid>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="8">
+                                <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                            </Border>
                             <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Border" Property="BorderBrush" Value="#D2B48C"/>
+                                <Trigger Property="IsMouseOver" Value="true">
+                                    <Setter Property="BorderBrush" TargetName="border" Value="#D2B48C"/>
+                                </Trigger>
+                                <Trigger Property="IsFocused" Value="true">
+                                    <Setter Property="BorderBrush" TargetName="border" Value="#D2B48C"/>
+                                    <Setter Property="Background" Value="#2A2A2A"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -57,28 +40,146 @@
                 </Setter>
             </Style>
 
-            <Style TargetType="ComboBoxItem">
+            <Style TargetType="DataGridColumnHeader">
+
+                <Setter Property="Background" Value="#1E1E1E"/>
+
+                <Setter Property="Foreground" Value="#D2B48C"/>
+
+                <Setter Property="Padding" Value="10,5"/>
+
+                <Setter Property="FontWeight" Value="Bold"/>
+
+                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+
+                <Setter Property="BorderBrush" Value="#333333"/>
+
+            </Style>
+
+
+
+            <Style TargetType="ComboBox">
+
+                <Setter Property="Background" Value="#2D2D2D"/>
+
                 <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Padding" Value="10,8"/>
+
+                <Setter Property="BorderBrush" Value="#333333"/>
+
+                <Setter Property="BorderThickness" Value="1"/>
+
+                <Setter Property="Padding" Value="8,5"/>
+
                 <Setter Property="Template">
+
                     <Setter.Value>
-                        <ControlTemplate TargetType="ComboBoxItem">
-                            <Border x:Name="Gd" Background="Transparent" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter />
-                            </Border>
+
+                        <ControlTemplate TargetType="ComboBox">
+
+                            <Grid>
+
+                                <Border x:Name="Border" Background="{TemplateBinding Background}" 
+
+                BorderBrush="{TemplateBinding BorderBrush}" 
+
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5"/>
+
+
+
+                                <Grid Margin="{TemplateBinding Padding}">
+
+                                    <Grid.ColumnDefinitions>
+
+                                        <ColumnDefinition Width="*"/>
+
+                                        <ColumnDefinition Width="Auto"/>
+
+                                    </Grid.ColumnDefinitions>
+
+                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" VerticalAlignment="Center"/>
+
+                                    <Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#D2B48C" StrokeThickness="2" VerticalAlignment="Center" Margin="5,0,0,0"/>
+
+                                </Grid>
+
+
+
+                                <Popup x:Name="PART_Popup" AllowsTransparency="True" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" Placement="Bottom">
+
+                                    <Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1" CornerRadius="5" MinWidth="{TemplateBinding ActualWidth}">
+
+                                        <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+
+                                    </Border>
+
+                                </Popup>
+
+                            </Grid>
+
                             <ControlTemplate.Triggers>
+
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Gd" Property="Background" Value="#333333"/>
-                                    <Setter Property="Foreground" Value="#D2B48C"/>
+
+                                    <Setter TargetName="Border" Property="BorderBrush" Value="#D2B48C"/>
+
                                 </Trigger>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter TargetName="Gd" Property="Background" Value="#44D2B48C"/>
-                                    <Setter Property="Foreground" Value="#D2B48C"/>
-                                </Trigger>
+
                             </ControlTemplate.Triggers>
+
                         </ControlTemplate>
+
                     </Setter.Value>
+
                 </Setter>
+
+            </Style>
+
+
+
+            <Style TargetType="ComboBoxItem">
+
+                <Setter Property="Foreground" Value="White"/>
+
+                <Setter Property="Padding" Value="10,8"/>
+
+                <Setter Property="Template">
+
+                    <Setter.Value>
+
+                        <ControlTemplate TargetType="ComboBoxItem">
+
+                            <Border x:Name="Gd" Background="Transparent" Padding="{TemplateBinding Padding}">
+
+                                <ContentPresenter />
+
+                            </Border>
+
+                            <ControlTemplate.Triggers>
+
+                                <Trigger Property="IsMouseOver" Value="True">
+
+                                    <Setter TargetName="Gd" Property="Background" Value="#333333"/>
+
+                                    <Setter Property="Foreground" Value="#D2B48C"/>
+
+                                </Trigger>
+
+                                <Trigger Property="IsSelected" Value="True">
+
+                                    <Setter TargetName="Gd" Property="Background" Value="#44D2B48C"/>
+
+                                    <Setter Property="Foreground" Value="#D2B48C"/>
+
+                                </Trigger>
+
+                            </ControlTemplate.Triggers>
+
+                        </ControlTemplate>
+
+                    </Setter.Value>
+
+                </Setter>
+
             </Style>
         </Grid.Resources>
 
@@ -90,31 +191,23 @@
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="РЕДАГУВАННЯ СКЛАДУ ЗАЯВКИ" Foreground="#D2B48C" 
-                   FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
-
-                <StackPanel Grid.Row="1" Margin="5,0,5,15">
-                    <TextBlock Text="Статус заявки" Foreground="#555555" FontSize="10" Margin="0,0,0,2"/>
-                    <ComboBox x:Name="cb_Status" Height="35" VerticalContentAlignment="Center">
-                        <ComboBoxItem Content="Pending"/>
-                        <ComboBoxItem Content="Completed"/>
-                        <ComboBoxItem Content="Canceled"/>
-                    </ComboBox>
-                </StackPanel>
+                <TextBlock x:Name="tb_windowTitle" Grid.Row="0" Text="РЕДАГУВАННЯ СКЛАДУ ЗАЯВКИ" Foreground="#D2B48C" 
+                       FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
 
                 <Border Grid.Row="2" Background="#181818" CornerRadius="8" Padding="5">
                     <DataGrid x:Name="dg_OrderItems" Background="Transparent" Foreground="White" 
-                      AutoGenerateColumns="False" CanUserAddRows="False" GridLinesVisibility="None">
+                          AutoGenerateColumns="False" CanUserAddRows="False" GridLinesVisibility="None">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Товар" Binding="{Binding Product.Name}" Width="*"/>
-                            <DataGridTextColumn Header="Доступно" Binding="{Binding Product.Stock}" Width="80"/>
+                            <DataGridTextColumn Header="Товар" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Доступно" Binding="{Binding Stock}" Width="80"/>
                             <DataGridTemplateColumn Header="К-сть" Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" 
-                                         Background="#2D2D2D" Foreground="White" BorderThickness="0"/>
+                                             Background="#2D2D2D" Foreground="White" BorderThickness="0"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -122,7 +215,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Content="🗑" Foreground="#E53935" Background="Transparent" 
-                                        BorderThickness="0" Click="RemoveItem_Click"/>
+                                            BorderThickness="0" Click="RemoveItem_Click"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -137,22 +230,23 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-
                         <StackPanel Grid.Column="0" Margin="5">
                             <TextBlock Text="Виберіть товар" Foreground="#888888" FontSize="10"/>
                             <ComboBox x:Name="cb_ProductPicker" DisplayMemberPath="Name" 
-                              SelectionChanged="cb_ProductPicker_SelectionChanged"/>
+                                  SelectionChanged="cb_ProductPicker_SelectionChanged" Height="35"/>
                         </StackPanel>
-
-                        <StackPanel Grid.Column="1" Margin="5" Width="60">
-                            <TextBlock Text="Залишок" Foreground="#888888" FontSize="10"/>
-                            <TextBlock x:Name="txt_Available" Text="0" Foreground="#D2B48C" 
-                               FontSize="14" VerticalAlignment="Center" Margin="5"/>
+                        <StackPanel Grid.Column="1" Margin="5" Width="100">
+                            <TextBlock Text="К-сть" Foreground="#888888" FontSize="10"/>
+                            <TextBox x:Name="txt_InputQuantity" 
+                                 Style="{StaticResource CommentTextBoxStyle}" 
+                                 Height="35" 
+                                 Text="1"
+                                 VerticalContentAlignment="Center"
+                                 HorizontalContentAlignment="Center"/>
                         </StackPanel>
-
                         <Button Grid.Column="2" Content="➕ ADD PRODUCT" Click="AddItem_Click" 
-                        Background="#D2B48C" Foreground="#1E1E1E" FontWeight="Bold" 
-                        Padding="15,0" Height="35" VerticalAlignment="Bottom" Margin="5">
+                            Background="#D2B48C" Foreground="#1E1E1E" FontWeight="Bold" 
+                            Padding="15,0" Height="35" VerticalAlignment="Bottom" Margin="5">
                             <Button.Resources>
                                 <Style TargetType="Border">
                                     <Setter Property="CornerRadius" Value="5"/>
@@ -162,9 +256,25 @@
                     </Grid>
                 </Border>
 
-                <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+                <StackPanel Grid.Row="4" Margin="5,0,5,15">
+                    <TextBlock Text="Коментар до заявки" Foreground="#555555" FontSize="10" Margin="0,0,0,2"/>
+                    <TextBox x:Name="tb_Comment" 
+                         Style="{StaticResource CommentTextBoxStyle}"
+                         Height="60" 
+                         TextWrapping="Wrap" 
+                         AcceptsReturn="True" 
+                         VerticalScrollBarVisibility="Auto"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="CANCEL" Click="Cancel_Click" Foreground="#888888" Background="Transparent" BorderThickness="0" Margin="0,0,15,0"/>
-                    <Button Content="SAVE ORDER" Click="Save_Click" Width="140" Height="40" Background="#4CAF50" Foreground="White" FontWeight="Bold"/>
+                    <Button Content="SAVE ORDER" Click="Save_Click" Width="140" Height="40" Background="#D2B48C" Foreground="#1E1E1E" FontWeight="Bold">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

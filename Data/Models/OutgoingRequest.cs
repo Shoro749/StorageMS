@@ -17,5 +17,7 @@ namespace Data.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public User CreatedBy { get; set; }
+
+        public virtual ICollection<OutgoingItem> Items { get; set; } = new HashSet<OutgoingItem>();
     }
 }
