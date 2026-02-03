@@ -18,7 +18,7 @@ namespace UI.Windows
         private readonly IService<Product> _productService;
         private readonly DataContext _dataContext;
 
-        private List<OutgoingRequest> _orders;
+        private List<OutgoingRequest> _requests;
         private List<Product> _products;
         public ManagerWindow(User user, DataContext context)
         {
@@ -28,20 +28,70 @@ namespace UI.Windows
             _requestService = new Service<OutgoingRequest>(context);
             _productService = new Service<Product>(context);
             _dataContext = context;
+
+            Loaded += AdminWindow_Loaded;
         }
 
-        private async void LoadOrders()
+        private async void AdminWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            await LoadData();
+        }
+
+        private async Task LoadData()
         {
             try
             {
-                // page 2
+                _products = await _productService.GetAllAsync();
+                _requests = await _requestService.GetAllAsync();
 
-                // page 3
-                _orders = await _requestService.GetAllAsync();
+                dg_Orders.ItemsSource = _requests;
+                dg_ProductsStock.ItemsSource = _products;
+
+                // усього товарів
+                txt_TotalItems.Text = _products.Count.ToString("#,##0");
+
+                // критичний залишок
+                var lowStockProducts = _products.Where(p => p.Stock <= p.MinimumStock).ToList();
+                txt_LowStock.Text = lowStockProducts.Count.ToString();
+
+                // заявки сьогодні
+                var today = DateTime.Today;
+                var completedToday = _requests.Count(r =>
+                    r.Status == "Completed" &&
+                    r.CreatedAt.Date == today);
+                txt_CompletedToday.Text = completedToday.ToString();
+
+                // pending заявки
+                var pendingOrders = _requests
+                    .Where(r => r.Status == "Pending")
+                    .OrderByDescending(r => r.CreatedAt)
+                    .Select(r => new
+                    {
+                        Id = r.Id,
+                        Client = r.CreatedBy?.Name ?? "Unknown",
+                        Date = r.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
+                        RequestObject = r
+                    })
+                    .ToList();
+
+                dg_PendingOrders.ItemsSource = pendingOrders;
+
+                // список товарів з 10 найменшим залишком
+                var lowStockList = lowStockProducts
+                    .OrderBy(p => p.Stock)
+                    .Take(10)
+                    .Select(p => new
+                    {
+                        Name = p.Name,
+                        Quantity = $"{p.Stock}/{p.MinimumStock} {p.Unit}"
+                    })
+                    .ToList();
+
+                ic_LowStockList.ItemsSource = lowStockList;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Помилка загрузки заяв: {ex.Message}", "Помилка",
+                MessageBox.Show($"Помилка завантаження даних: {ex.Message}", "Помилка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -55,7 +105,7 @@ namespace UI.Windows
 
                 if (result == true)
                 {
-                    _orders.Add(ow._or);
+                    _requests.Add(ow._or);
                     dg_Orders.Items.Refresh();
                     await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has created order {ow._or.Id}.", User = _currentUser });
                 }
@@ -69,17 +119,39 @@ namespace UI.Windows
 
         private void OnStockFilterChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
+            if (tb_ProductSearch == null || chb_LowStockOnly == null || _products == null)
+                return;
 
+            ApplyStockFilters();
         }
 
         private void OnStockFilterChanged(object sender, RoutedEventArgs e)
         {
+            if (tb_ProductSearch == null || chb_LowStockOnly == null || _products == null)
+                return;
 
+            ApplyStockFilters();
         }
 
-        private void RefreshStock_Click(object sender, RoutedEventArgs e)
+        private void ApplyStockFilters()
         {
+            string searchText = tb_ProductSearch.Text.ToLower().Trim();
+            bool lowStockOnly = chb_LowStockOnly.IsChecked ?? false;
 
+            var filtered = _products.Where(p =>
+            {
+                bool matchesName = string.IsNullOrEmpty(searchText) || (p.Name != null && p.Name.ToLower().Contains(searchText));
+                bool matchesLowStock = !lowStockOnly || p.Status == "Low" || p.Status == "Out of stock";
+
+                return matchesName && matchesLowStock;
+            }).ToList();
+
+            dg_ProductsStock.ItemsSource = filtered;
+        }
+
+        private void Refresh_Click(object sender, RoutedEventArgs e)
+        {
+            LoadData();
         }
 
         private async void EditOrder_Click(object sender, RoutedEventArgs e)
@@ -95,8 +167,8 @@ namespace UI.Windows
 
                         if (result == true)
                         {
-                            _orders.Remove(selectedOrder);
-                            _orders.Add(ow._or);
+                            _requests.Remove(selectedOrder);
+                            _requests.Add(ow._or);
                             dg_Orders.Items.Refresh();
 
                             await _logService.CreateAsync(new ActionLog
@@ -149,7 +221,7 @@ namespace UI.Windows
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        _orders.Remove(selectedOrder);
+                        _requests.Remove(selectedOrder);
                         await _requestService.DeleteAsync(selectedOrder.Id);
                         await _logService.CreateAsync(new ActionLog
                         {
@@ -168,7 +240,7 @@ namespace UI.Windows
 
         private void OnOrderFilterChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (cb_FilterStatus == null || dp_FilterDate == null || chb_MyOrdersOnly == null || _orders == null)
+            if (cb_FilterStatus == null || dp_FilterDate == null || chb_MyOrdersOnly == null || _requests == null)
                 return;
 
             ApplyOrderFilters();
@@ -180,7 +252,7 @@ namespace UI.Windows
             DateTime? selectedDate = dp_FilterDate.SelectedDate;
             bool myOrdersOnly = chb_MyOrdersOnly.IsChecked ?? false;
 
-            var filtered = _orders.Where(order =>
+            var filtered = _requests.Where(order =>
             {
                 bool matchesStatus = selectedStatus == "Всі статуси" || order.Status == selectedStatus;
                 bool matchesDate = !selectedDate.HasValue || order.CreatedAt.Date == selectedDate.Value.Date;

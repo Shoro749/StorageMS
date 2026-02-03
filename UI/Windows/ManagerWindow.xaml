@@ -183,9 +183,9 @@
                         <Grid Margin="10,0,10,20">
                             <TextBlock Text="ОГЛЯД СКЛАДУ" Foreground="#D2B48C" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
                             <Button HorizontalAlignment="Right" Background="#D2B48C" Foreground="#1E1E1E" 
-                                Padding="20,10" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="CreateOrder_Click">
+                                Padding="20,10" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="Refresh_Click">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="➕ СТВОРИТИ ЗАЯВКУ" VerticalAlignment="Center"/>
+                                    <TextBlock Text="ОНОВИТИ" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </Grid>
@@ -291,7 +291,7 @@
 
                         <Button Content="ОНОВИТИ СПИСОК" Margin="20,0,0,0" Height="35" Padding="15,0"
                             Background="Transparent" Foreground="#888888" BorderBrush="#333333"
-                            Click="RefreshStock_Click"/>    
+                            Click="Refresh_Click"/>    
                     </StackPanel>
 
                     <DataGrid Grid.Row="1" x:Name="dg_ProductsStock" 
