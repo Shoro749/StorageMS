@@ -50,7 +50,7 @@ namespace UI.Windows
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Помилка збереження: {ex.Message}", "Помилка",
+                MessageBox.Show($"Помилка загрузки: {ex.Message}", "Помилка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -93,7 +93,7 @@ namespace UI.Windows
                         Items = new List<OutgoingItem>()
                     };
 
-                    var createdRequest = await _requestService.CreateAsync(newRequest);
+                    _or = await _requestService.CreateAsync(newRequest);
 
                     MessageBox.Show("Заявку успішно створено!", "Успіх",
                         MessageBoxButton.OK, MessageBoxImage.Information);
@@ -122,7 +122,7 @@ namespace UI.Windows
                         await _itemService.CreateAsync(newItem);
                     }
 
-                    await _requestService.UpdateAsync(_or.Id, _or);
+                    _or = await _requestService.UpdateAsync(_or.Id, _or);
 
                     MessageBox.Show("Заявку успішно оновлено!", "Успіх",
                         MessageBoxButton.OK, MessageBoxImage.Information);
@@ -141,6 +141,7 @@ namespace UI.Windows
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
+            Close();
         }
 
         private void AddItem_Click(object sender, RoutedEventArgs e)
