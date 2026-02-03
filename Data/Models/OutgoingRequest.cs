@@ -11,6 +11,9 @@ namespace Data.Models
         [Required, StringLength(128)]
         public string Status { get; set; }
 
+        [StringLength(256)]
+        public string Comment { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public User CreatedBy { get; set; }
