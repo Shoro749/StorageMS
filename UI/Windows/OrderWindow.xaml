@@ -236,7 +236,7 @@
                                   SelectionChanged="cb_ProductPicker_SelectionChanged" Height="35"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="5" Width="100">
-                            <TextBlock Text="К-сть" Foreground="#888888" FontSize="10"/>
+                            <TextBlock x:Name="lbl_Limit" Text="К-сть (max: })" Foreground="#888888" FontSize="10"/>
                             <TextBox x:Name="txt_InputQuantity" 
                                  Style="{StaticResource CommentTextBoxStyle}" 
                                  Height="35" 

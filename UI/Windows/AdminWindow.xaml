@@ -171,6 +171,126 @@
             </TabItem>
             <TabItem Header="ЗВІТИ"/>
             <TabItem Header="ЛОГИ"/>
+            <TabItem Header="ТОВАРИ">
+                <Grid Margin="10,20,10,10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="Пошук назви" Foreground="#555555" FontSize="10" Margin="5,0,0,2"/>
+                                <TextBox x:Name="tb_productNameSearch" Width="200" Height="35" Background="#1E1E1E" 
+                             Foreground="White" BorderBrush="#333333" Padding="10,5" 
+                             VerticalContentAlignment="Center" TextChanged="OnProductFilterChanged"/>
+                            </StackPanel>
+
+                            <StackPanel Margin="10,0">
+                                <TextBlock Text="Статус залишків" Foreground="#555555" FontSize="10" Margin="5,0,0,2"/>
+                                <ComboBox x:Name="cb_filterStockStatus" Width="150" Height="35" SelectedIndex="0" 
+                              SelectionChanged="OnProductFilterChanged">
+                                    <ComboBoxItem Content="All products"/>
+                                    <ComboBoxItem Content="OK"/>
+                                    <ComboBoxItem Content="Low"/>
+                                    <ComboBoxItem Content="Out of stock"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <Button Content="+ НОВИЙ ТОВАР" Background="#D2B48C" Foreground="#1E1E1E" 
+                        Padding="20,0" Height="35" VerticalAlignment="Bottom"
+                        FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="CreateProduct_Click"/>
+                        </StackPanel>
+
+                        <DataGrid x:Name="dg_productList" Grid.Row="1" Background="#1E1E1E" 
+                              Foreground="White" RowBackground="#1E1E1E" AlternatingRowBackground="#252525"
+                              BorderThickness="0" GridLinesVisibility="None" AutoGenerateColumns="False"
+                              CanUserAddRows="False" SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Назва" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Залишок" Binding="{Binding Stock}" Width="100" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Од. вим." Binding="{Binding Unit}" Width="80" IsReadOnly="True"/>
+
+                                <DataGridTemplateColumn Header="Дії" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="РЕДАГУВАТИ" Background="#D2B48C" Foreground="#1E1E1E" 
+                                                FontSize="10" FontWeight="Bold" Padding="5,2" BorderThickness="0" 
+                                                Cursor="Hand" Click="ProductDetails_Click">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius" Value="3"/>
+                                                    </Style>
+                                                </Button.Resources>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+
+                    <Border x:Name="b_productDetailsPanel" Visibility="Collapsed" HorizontalAlignment="Right" 
+                Width="380" Background="#1E1E1E" CornerRadius="15" Padding="25" Margin="0,0,10,10">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="40" Direction="180" ShadowDepth="5" Opacity="0.5"/>
+                        </Border.Effect>
+
+                        <StackPanel>
+                            <Grid Margin="0,0,0,20">
+                                <TextBlock Text="РЕДАГУВАННЯ ТОВАРУ" Foreground="#D2B48C" FontSize="18" FontWeight="Bold"/>
+                                <Button Content="✕" HorizontalAlignment="Right" Background="Transparent" 
+                            Foreground="#888888" BorderThickness="0" FontSize="20" Cursor="Hand" Click="CloseProductDetails_Click"/>
+                            </Grid>
+
+                            <TextBlock Text="Назва товару" Foreground="#888888" Margin="0,10,0,5"/>
+                            <TextBox x:Name="tb_productEditName" Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
+
+                            <TextBlock Text="Одиниця виміру (шт, кг, м)" Foreground="#888888" Margin="0,15,0,5"/>
+                            <TextBox x:Name="tb_productEditUnit" Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
+
+                            <TextBlock Text="Мінімальний поріг (для сповіщень)" Foreground="#888888" Margin="0,15,0,5"/>
+                            <TextBox x:Name="tb_productEditMinStock" Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
+
+                            <UniformGrid Columns="2" Margin="0,40,0,0">
+                                <Button Content="ЗБЕРЕГТИ" Background="#D2B48C" Margin="0,0,5,0" Height="40" 
+                            BorderThickness="0" FontWeight="Bold" Foreground="#1E1E1E" Click="EditProductSave_Click"/>
+                                <Button Content="ВИДАЛИТИ" Background="#442222" Foreground="#FF6666" 
+                            Margin="5,0,0,0" Height="40" BorderThickness="0" Click="DeleteProduct_Click"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border x:Name="b_createProductPanel" Visibility="Collapsed" HorizontalAlignment="Right" 
+                Width="380" Background="#1E1E1E" CornerRadius="15" Padding="25" Margin="0,0,10,10">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="40" Direction="180" ShadowDepth="5" Opacity="0.5"/>
+                        </Border.Effect>
+
+                        <StackPanel>
+                            <Grid Margin="0,0,0,20">
+                                <TextBlock Text="НОВИЙ ТОВАР" Foreground="#D2B48C" FontSize="18" FontWeight="Bold"/>
+                                <Button Content="✕" HorizontalAlignment="Right" Background="Transparent" 
+                            Foreground="#888888" BorderThickness="0" FontSize="20" Cursor="Hand" Click="CloseCreateProduct_Click"/>
+                            </Grid>
+
+                            <TextBlock Text="Назва товару" Foreground="#888888" Margin="0,10,0,5"/>
+                            <TextBox x:Name="tb_createProductName" Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
+
+                            <TextBlock Text="Одиниця виміру" Foreground="#888888" Margin="0,15,0,5"/>
+                            <TextBox x:Name="tb_createProductUnit" Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
+
+                            <TextBlock Text="Початковий залишок" Foreground="#888888" Margin="0,15,0,5"/>
+                            <TextBox x:Name="tb_createProductStock" Background="#2D2D2D" Foreground="White" BorderThickness="0" Padding="10"/>
+
+                            <Button Content="СТВОРИТИ" Background="#D2B48C" Margin="0,40,0,0" Height="40" 
+                        BorderThickness="0" FontWeight="Bold" Foreground="#1E1E1E" Click="ConfirmCreateProduct_Click"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

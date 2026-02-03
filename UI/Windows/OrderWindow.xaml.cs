@@ -205,5 +205,14 @@ namespace UI.Windows
                 _items.Remove(item);
             }
         }
+
+        private void cb_ProductPicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cb_ProductPicker.SelectedItem is Product selectedProduct)
+            {
+                lbl_Limit.Text = $"К-сть (max: {selectedProduct.Stock})";
+                txt_InputQuantity.Text = "1";
+            }
+        }
     }
 }

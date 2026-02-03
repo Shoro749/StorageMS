@@ -315,5 +315,10 @@ namespace UI.Windows
 
             dg_userList.ItemsSource = filtered;
         }
+
+        private void CreateProduct_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

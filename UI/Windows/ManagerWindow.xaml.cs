@@ -246,6 +246,14 @@ namespace UI.Windows
             ApplyOrderFilters();
         }
 
+        private void OnOrderFilterChanged(object sender, RoutedEventArgs e)
+        {
+            if (cb_FilterStatus == null || dp_FilterDate == null || chb_MyOrdersOnly == null || _requests == null)
+                return;
+
+            ApplyOrderFilters();
+        }
+
         private void ApplyOrderFilters()
         {
             string selectedStatus = (cb_FilterStatus.SelectedItem as ComboBoxItem)?.Content.ToString() ?? "Всі статуси";
@@ -262,6 +270,14 @@ namespace UI.Windows
             }).ToList();
 
             dg_Orders.ItemsSource = filtered;
+        }
+
+        private void Logout_Click(object sender, RoutedEventArgs e)
+        {
+            MainWindow mainWindow = new MainWindow();
+            Application.Current.MainWindow = mainWindow;
+            mainWindow.Show();
+            this.Close();
         }
     }
 }

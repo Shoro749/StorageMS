@@ -182,12 +182,22 @@
 
                         <Grid Margin="10,0,10,20">
                             <TextBlock Text="ОГЛЯД СКЛАДУ" Foreground="#D2B48C" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
-                            <Button HorizontalAlignment="Right" Background="#D2B48C" Foreground="#1E1E1E" 
-                                Padding="20,10" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="Refresh_Click">
-                                <StackPanel Orientation="Horizontal">
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Background="#D2B48C" Foreground="#1E1E1E" 
+                                    Padding="20,10" FontWeight="Bold" BorderThickness="0" 
+                                    Cursor="Hand" Click="Refresh_Click" Margin="0,0,10,0">
                                     <TextBlock Text="ОНОВИТИ" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
+                                </Button>
+
+                                <Button Background="#E53935" Foreground="White" 
+                                    Padding="20,10" FontWeight="Bold" BorderThickness="0" 
+                                    Cursor="Hand" Click="Logout_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="ВИЙТИ" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
                         </Grid>
 
                         <UniformGrid Columns="3">
