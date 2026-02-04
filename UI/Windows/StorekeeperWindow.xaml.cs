@@ -1,5 +1,7 @@
-﻿using Data.Context;
+﻿using Azure.Core;
+using Data.Context;
 using Data.Models;
+using Microsoft.EntityFrameworkCore;
 using Service.Interfaces;
 using Service.Services;
 using System.Threading.Tasks;
@@ -18,10 +20,13 @@ namespace UI.Windows
         private readonly IService<Product> _productService;
         private readonly IService<ActionLog> _logService;
         private readonly IService<Incoming> _incomingService;
+        private readonly IService<OutgoingRequest> _requestService;
 
+        private OutgoingRequest _chosenRequest = null;
+        private Product _selectedProduct = null;
         private List<Product> _products = new List<Product>();
-        private Product _selectedProduct;
         private List<Incoming> _incomings = new List<Incoming>();
+        private List<OutgoingRequest> _requests = new List<OutgoingRequest>();
 
         public StorekeeperWindow(User user, DataContext context)
         {
@@ -30,7 +35,7 @@ namespace UI.Windows
             _productService = new Service<Product>(context);
             _logService = new Service<ActionLog>(context);
             _incomingService = new Service<Incoming>(context);
-            _selectedProduct = null;
+            _requestService = new Service<OutgoingRequest>(context);
 
             Loaded += AdminWindow_Loaded;
         }
@@ -46,15 +51,25 @@ namespace UI.Windows
             {
                 _products = await _productService.GetAllAsync();
                 _incomings = await _incomingService.GetAllAsync();
+                _requests = await _requestService.GetAllAsync();
+                _requests = _requests.OrderByDescending(r => r.CreatedAt).ToList();
 
                 dg_ProductsStock.ItemsSource = _products;
                 dg_incomingList.ItemsSource = _incomings;
+
+                UpdateRequestList(_requests);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка завантаження даних: {ex.Message}", "Помилка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void UpdateRequestList(List<OutgoingRequest> requests)
+        {
+            dg_Requests.ItemsSource = requests;
+            dg_Requests.Items.Refresh();
         }
 
         private void OnStockFilterChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
@@ -235,6 +250,212 @@ namespace UI.Windows
             }).ToList();
 
             dg_incomingList.ItemsSource = filtered;
+        }
+
+        private void OnRequestFilterChanged(object sender, EventArgs e)
+        {
+            if (cb_FilterRequestStatus == null || dp_RequestDate == null || _requests == null)
+                return;
+
+            ApplyRequestFilters();
+        }
+
+        private void ApplyRequestFilters()
+        {
+            var selectedItem = cb_FilterRequestStatus.SelectedItem as ComboBoxItem;
+            string selectedStatus = selectedItem?.Content?.ToString() ?? "Всі статуси";
+
+            DateTime? selectedDate = dp_RequestDate.SelectedDate;
+
+            var filtered = _requests.Where(request =>
+            {
+                bool matchesStatus = selectedStatus == "Всі статуси";
+
+                if (!matchesStatus)
+                {
+                    string dbStatus = selectedStatus switch
+                    {
+                        "Очікує" => "Pending",
+                        "Завершено" => "Completed",
+                        "Відхилено" => "Rejected",
+                        _ => request.Status
+                    };
+                    matchesStatus = request.Status == dbStatus;
+                }
+
+                bool matchesDate = !selectedDate.HasValue ||
+                                   request.CreatedAt.Date == selectedDate.Value.Date;
+
+                return matchesStatus && matchesDate;
+            })
+            .OrderByDescending(r => r.CreatedAt)
+            .ToList();
+
+            UpdateRequestList(filtered);
+        }
+
+        private void ViewRequestDetails_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            var selectedRequest = button?.DataContext as OutgoingRequest;
+
+            if (selectedRequest != null)
+            {
+                _chosenRequest = selectedRequest;
+                DisplayRequestDetails(selectedRequest);
+            }
+            else
+            {
+                MessageBox.Show("Невдалося відкрити заявку!", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void DisplayRequestDetails(OutgoingRequest request)
+        {
+            lbl_RequestTitle.Text = $"ЗАЯВКА №{request.Id}";
+            lbl_RequestAuthor.Text = $"Автор: {request.CreatedBy?.Name ?? "Невідомо"} | Дата: {request.CreatedAt:dd.MM.yyyy HH:mm}";
+            lbl_RequestComment.Text = string.IsNullOrWhiteSpace(request.Comment)
+                ? "Коментар відсутній"
+                : request.Comment;
+
+            dg_RequestItems.ItemsSource = request.Items?.ToList() ?? new List<OutgoingItem>();
+
+            if (request.Status == "Pending")
+            {
+                ug_RequestActions.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ug_RequestActions.Visibility = Visibility.Collapsed;
+            }
+
+            b_RequestDetailsPanel.Visibility = Visibility.Visible;
+        }
+
+        private void CloseRequestDetails_Click(object sender, RoutedEventArgs e)
+        {
+            _chosenRequest = null;
+            b_RequestDetailsPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private async void ApproveRequest_Click(object sender, RoutedEventArgs e)
+        {
+            if (_chosenRequest == null) return;
+
+            try
+            {
+                var insufficientItems = new List<string>();
+
+                foreach (var item in _chosenRequest.Items)
+                {
+                    var product = await _productService.GetByIdAsync(item.Product.Id);
+
+                    if (product == null)
+                    {
+                        insufficientItems.Add($"{item.Product.Name} - товар не знайдено");
+                        continue;
+                    }
+
+                    if (product.Stock < item.Quantity)
+                    {
+                        insufficientItems.Add($"{product.Name} - недостатньо на складі (є: {product.Stock}, потрібно: {item.Quantity})");
+                    }
+                }
+
+                if (insufficientItems.Any())
+                {
+                    string message = "Неможливо затвердити заявку через недостатність товарів:\n\n" +
+                                   string.Join("\n", insufficientItems);
+
+                    MessageBox.Show(message, "Недостатньо товару",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    $"Затвердити заявку №{_chosenRequest.Id}?\n\nТовари будуть списані зі складу.",
+                    "Підтвердження",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    foreach (var item in _chosenRequest.Items)
+                    {
+                        var product = await _productService.GetByIdAsync(item.Product.Id);
+                        product.Stock -= item.Quantity;
+                        await _productService.UpdateAsync(product.Id, product);
+                    }
+
+ 
+                    _chosenRequest.Status = "Completed";
+                    await _requestService.UpdateAsync(_chosenRequest.Id, _chosenRequest);
+
+                    var itemsList = string.Join(", ", _chosenRequest.Items.Select(i =>
+                        $"{i.Product.Name} ({i.Quantity} {i.Product.Unit})"));
+
+                    await _logService.CreateAsync(new ActionLog
+                    {
+                        Action = $"{_currentUser.Name} затвердив заявку №{_chosenRequest.Id}. Товари: {itemsList}",
+                        User = _currentUser,
+                    });
+
+                    await LoadData();
+                    ApplyRequestFilters();
+
+                    b_RequestDetailsPanel.Visibility = Visibility.Collapsed;
+                    _chosenRequest = null;
+
+                    MessageBox.Show("Заявку успішно затверджено!\nТовари списано зі складу.", "Успіх",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка затвердження заявки: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void RejectRequest_Click(object sender, RoutedEventArgs e)
+        {
+            if (_chosenRequest == null) return;
+
+            try
+            {
+                var result = MessageBox.Show(
+                    $"Відхилити заявку №{_chosenRequest.Id}?",
+                    "Підтвердження",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    _chosenRequest.Status = "Rejected";
+                    await _requestService.UpdateAsync(_chosenRequest.Id, _chosenRequest);
+
+                    await _logService.CreateAsync(new ActionLog
+                    {
+                        Action = $"{_currentUser.Name} відхилив заявку №{_chosenRequest.Id}",
+                        User = _currentUser,
+                    });
+
+                    await LoadData();
+                    ApplyRequestFilters();
+
+                    b_RequestDetailsPanel.Visibility = Visibility.Collapsed;
+                    _chosenRequest = null;
+
+                    MessageBox.Show("Заявку відхилено!", "Успіх",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка відхилення заявки: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

@@ -237,7 +237,7 @@
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem Header="НАКЛАДНІ">
+            <TabItem Header="НАДХОДЖЕННЯ">
                 <Grid Margin="10,20,10,10">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -260,8 +260,8 @@
                             </StackPanel>
 
                             <Button Content="🔄 ОНОВИТИ" Background="Transparent" Foreground="#D2B48C" 
-                        BorderBrush="#D2B48C" BorderThickness="1" Padding="15,0" Height="35" 
-                        VerticalAlignment="Bottom" Cursor="Hand" Click="RefreshIncoming_Click" Margin="0,0,10,0"/>
+                                BorderBrush="#D2B48C" BorderThickness="1" Padding="15,0" Height="35" 
+                                VerticalAlignment="Bottom" Cursor="Hand" Click="RefreshIncoming_Click" Margin="0,0,10,0"/>
                         </StackPanel>
 
                         <DataGrid x:Name="dg_incomingList" Grid.Row="1" Background="#1E1E1E" 
@@ -295,6 +295,181 @@
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
+                </Grid>
+            </TabItem>
+            <TabItem Header="ВИПУСК">
+                <Grid Margin="10,20,10,10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,15">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <StackPanel>
+                                    <TextBlock Text="Статус" Foreground="#555555" FontSize="10" Margin="5,0,0,2"/>
+                                    <ComboBox x:Name="cb_FilterRequestStatus" Width="150" Height="35" 
+                                  SelectedIndex="0" SelectionChanged="OnRequestFilterChanged">
+                                        <ComboBoxItem Content="Всі статуси"/>
+                                        <ComboBoxItem Content="Очікує"/>
+                                        <ComboBoxItem Content="Завершено"/>
+                                        <ComboBoxItem Content="Відхилено"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Margin="10,0">
+                                    <TextBlock Text="Дата" Foreground="#555555" FontSize="10" Margin="5,0,0,2"/>
+                                    <DatePicker x:Name="dp_RequestDate" Width="150" Height="35" 
+                                    SelectedDateChanged="OnRequestFilterChanged"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+
+                        <DataGrid x:Name="dg_Requests" Grid.Row="1" Background="#1E1E1E" 
+          Foreground="White" RowBackground="#1E1E1E" AlternatingRowBackground="#252525"
+          BorderThickness="0" GridLinesVisibility="None" AutoGenerateColumns="False"
+          CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single">
+
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="№" Binding="{Binding Id}" Width="50"/>
+                                <DataGridTextColumn Header="Дата" Binding="{Binding CreatedAt, StringFormat=\{0:dd.MM.yyyy HH:mm\}}" Width="130"/>
+                                <DataGridTextColumn Header="Автор" Binding="{Binding CreatedBy.Name}" Width="150"/>
+                                <DataGridTextColumn Header="Коментар" Binding="{Binding Comment}" Width="*"/>
+
+                                <DataGridTemplateColumn Header="Статус" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Status}" FontWeight="Bold" HorizontalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Очікує">
+                                                                <Setter Property="Foreground" Value="#FFB300"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Завершено">
+                                                                <Setter Property="Foreground" Value="#4CAF50"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Відхилено">
+                                                                <Setter Property="Foreground" Value="#F44336"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTemplateColumn Header="Дії" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="ПЕРЕГЛЯНУТЬ" Background="#D2B48C" Foreground="#1E1E1E" 
+                            FontWeight="Bold" FontSize="10" Padding="10,2" Cursor="Hand"
+                            Click="ViewRequestDetails_Click" BorderThickness="0">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border Background="{TemplateBinding Background}" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Opacity" Value="0.9"/>
+                                                                <Setter Property="Background" Value="#E6C9A2"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+
+                    <Border x:Name="b_RequestDetailsPanel" Visibility="Collapsed" HorizontalAlignment="Right" 
+        Width="450" Background="#1E1E1E" CornerRadius="15" Padding="25" Margin="0,0,10,10">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="40" Direction="180" ShadowDepth="5" Opacity="0.5"/>
+                        </Border.Effect>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,20">
+                                <TextBlock x:Name="lbl_RequestTitle" Text="ЗАЯВКА №" Foreground="#D2B48C" FontSize="18" FontWeight="Bold"/>
+                                <Button Content="✕" HorizontalAlignment="Right" Background="Transparent" 
+                    Foreground="#888888" BorderThickness="0" FontSize="20" Cursor="Hand" Click="CloseRequestDetails_Click">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Grid>
+
+                            <StackPanel Grid.Row="1" Margin="0,0,0,15">
+                                <TextBlock x:Name="lbl_RequestAuthor" Foreground="#888888" FontSize="12"/>
+                                <TextBlock x:Name="lbl_RequestComment" Foreground="White" FontSize="14" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                            </StackPanel>
+
+                            <DataGrid Grid.Row="2" x:Name="dg_RequestItems" Background="#252525" Foreground="White" 
+                  RowBackground="#252525" BorderThickness="0" AutoGenerateColumns="False" 
+                  IsReadOnly="True" CanUserAddRows="False" GridLinesVisibility="None">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Товар" Binding="{Binding Product.Name}" Width="*"/>
+                                    <DataGridTextColumn Header="Кіл-ть" Binding="{Binding Quantity}" Width="80"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <UniformGrid Grid.Row="3" Columns="2" Margin="0,20,0,0" x:Name="ug_RequestActions">
+                                <UniformGrid.Resources>
+                                    <Style TargetType="Button">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Opacity" Value="0.8"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </UniformGrid.Resources>
+
+                                <Button Content="ЗАТВЕРДИТИ" Background="#4CAF50" Foreground="White" 
+                    Height="45" Margin="0,0,5,0" Click="ApproveRequest_Click"/>
+
+                                <Button Content="ВІДХИЛИТИ" Background="#442222" Foreground="#F44336" 
+                    Height="45" Margin="5,0,0,0" Click="RejectRequest_Click"/>
+                            </UniformGrid>
+                        </Grid>
+                    </Border>
                 </Grid>
             </TabItem>
         </TabControl>
