@@ -67,6 +67,9 @@ namespace UI
                         break;
 
                     case "Storekeeper":
+                        StorekeeperWindow storekeeperWindow = new StorekeeperWindow(user, _context);
+                        Application.Current.MainWindow = storekeeperWindow;
+                        storekeeperWindow.Show();
                         break;
                 }
                 this.Close();
