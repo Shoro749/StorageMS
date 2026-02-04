@@ -1,13 +1,8 @@
 ﻿using Data.Context;
 using Data.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Repository.Interfaces;
-using Repository.Repositories;
 using Service.Interfaces;
 using Service.Services;
-using System.Net.NetworkInformation;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -23,7 +18,11 @@ namespace UI.Windows
         private readonly IUserService _userService;
         private readonly IService<Role> _roleService;
         private readonly IService<ActionLog> _logService;
+        private readonly IService<Product> _productService;
+        
         private List<User> _users;
+        private List<Product> _products = new List<Product>();
+        private Product _chosenProduct = null;
         public AdminWindow(User user, DataContext context)
         {
             InitializeComponent();
@@ -31,12 +30,15 @@ namespace UI.Windows
             _userService = new UserService(context);
             _roleService = new Service<Role>(context);
             _logService = new Service<ActionLog>(context);
+            _productService = new Service<Product>(context);
+
             this.Loaded += AdminWindow_Loaded;
         }
 
         private async void AdminWindow_Loaded(object sender, RoutedEventArgs e)
         {
             await Task.WhenAll(LoadRoles(), LoadUsers());
+            await LoadProducts();
         }
 
         private async Task LoadUsers()
@@ -49,6 +51,20 @@ namespace UI.Windows
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка завантаження користувачів: {ex.Message}");
+            }
+        }
+
+        private async Task LoadProducts()
+        {
+            try
+            {
+                _products = await _productService.GetAllAsync();
+                UpdateProductList(_products);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка завантаження товарів: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -258,39 +274,6 @@ namespace UI.Windows
             b_createUserPanel.Visibility = Visibility.Collapsed;
         }
 
-        //private void RoleFilterChanged(object sender, DependencyPropertyChangedEventArgs e)
-        //{
-        //    if (cb_filterRoles == null || _users == null) return;
-
-        //    var selected = cb_filterRoles.SelectedItem;
-        //    if (selected == null) return;
-
-        //    string roleName = selected.GetType().GetProperty("Name")?.GetValue(selected)?.ToString();
-
-        //    if (string.IsNullOrEmpty(roleName) || roleName == "Всі ролі")
-        //    {
-        //        UpdateUserList(_users);
-        //    }
-        //    else
-        //    {
-        //        var filteredUsers = _users
-        //            .Where(u => u.Role != null && u.Role.Name == roleName)
-        //            .ToList();
-        //        UpdateUserList(filteredUsers);
-        //    }
-        //}
-
-        //private void SearchChanged(object sender, DependencyPropertyChangedEventArgs e)
-        //{
-        //    string text = tb_userNameSearch.Text.Trim().ToLower();
-
-        //    if (string.IsNullOrEmpty(text)) return;
-
-        //    var filteredUsers = _users.Where(u => u.Name != null && u.Name.ToLower().Contains(text)).ToList();
-
-        //    UpdateUserList(filteredUsers);
-        //}
-
         private void OnFilterChanged(object sender, EventArgs e)
         {
             if (tb_userNameSearch == null || cb_filterRoles == null || _users == null) return;
@@ -316,9 +299,228 @@ namespace UI.Windows
             dg_userList.ItemsSource = filtered;
         }
 
+        // products tab
+
+        private void UpdateProductList(List<Product> products)
+        {
+            dg_productList.ItemsSource = products;
+            dg_productList.Items.Refresh();
+        }
+
+        private void OnProductFilterChanged(object sender, EventArgs e)
+        {
+            if (tb_productNameSearch == null || cb_filterStockStatus == null || _products == null)
+                return;
+
+            ApplyProductFilters();
+        }
+
+        private void ApplyProductFilters()
+        {
+            string searchText = tb_productNameSearch.Text.ToLower().Trim();
+
+            var selectedItem = cb_filterStockStatus.SelectedItem as ComboBoxItem;
+            string selectedStatus = selectedItem?.Content?.ToString() ?? "All products";
+
+            var filtered = _products.Where(p =>
+            {
+                bool matchesName = string.IsNullOrEmpty(searchText) ||
+                                   (p.Name != null && p.Name.ToLower().Contains(searchText));
+
+                bool matchesStatus = selectedStatus == "All products" ||
+                                     p.Status == selectedStatus;
+
+                return matchesName && matchesStatus;
+            }).ToList();
+
+            UpdateProductList(filtered);
+        }
+
+        private void ProductDetails_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            var selectedProduct = button?.DataContext as Product;
+
+            if (selectedProduct != null)
+            {
+                tb_productEditName.Text = selectedProduct.Name;
+                tb_productEditUnit.Text = selectedProduct.Unit;
+                tb_productEditMinStock.Text = selectedProduct.MinimumStock.ToString();
+
+                _chosenProduct = selectedProduct;
+                b_productDetailsPanel.Visibility = Visibility.Visible;
+                b_createProductPanel.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                MessageBox.Show("Невдалося відкрити товар!", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void CloseProductDetails_Click(object sender, RoutedEventArgs e)
+        {
+            _chosenProduct = null;
+            b_productDetailsPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private async void EditProductSave_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string name = tb_productEditName.Text.Trim();
+                string unit = tb_productEditUnit.Text.Trim();
+
+                if (!decimal.TryParse(tb_productEditMinStock.Text, out decimal minStock) || minStock < 0)
+                {
+                    MessageBox.Show("Введіть коректний мінімальний поріг!", "Помилка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(unit))
+                {
+                    MessageBox.Show("Назва та одиниця виміру не можуть бути пустими!", "Помилка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var updatedProduct = new Product
+                {
+                    Id = _chosenProduct.Id,
+                    Name = name,
+                    Description = _chosenProduct.Description,
+                    Unit = unit,
+                    Stock = _chosenProduct.Stock,
+                    MinimumStock = minStock,
+                    CreatedAt = _chosenProduct.CreatedAt
+                };
+
+                var result = await _productService.UpdateAsync(updatedProduct.Id, updatedProduct);
+
+                _products.Remove(_chosenProduct);
+                _products.Add(result);
+
+                UpdateProductList(_products);
+                ApplyProductFilters();
+
+                b_productDetailsPanel.Visibility = Visibility.Collapsed;
+                _chosenProduct = null;
+
+                MessageBox.Show("Товар успішно оновлено!", "Успіх",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка редагування товару: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void DeleteProduct_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var result = MessageBox.Show(
+                    $"Ви впевнені, що хочете видалити товар '{_chosenProduct.Name}'?",
+                    "Підтвердження видалення",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    await _productService.DeleteAsync(_chosenProduct.Id);
+
+                    _products.Remove(_chosenProduct);
+                    UpdateProductList(_products);
+                    ApplyProductFilters();
+
+                    b_productDetailsPanel.Visibility = Visibility.Collapsed;
+                    _chosenProduct = null;
+
+                    MessageBox.Show("Товар успішно видалено!", "Успіх",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка видалення товару: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void CreateProduct_Click(object sender, RoutedEventArgs e)
         {
+            tb_createProductName.Clear();
+            tb_createProductUnit.Clear();
+            tb_createProductStock.Text = "0";
 
+            b_createProductPanel.Visibility = Visibility.Visible;
+            b_productDetailsPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void CloseCreateProduct_Click(object sender, RoutedEventArgs e)
+        {
+            b_createProductPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private async void ConfirmCreateProduct_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string name = tb_createProductName.Text.Trim();
+                string unit = tb_createProductUnit.Text.Trim();
+
+                if (!decimal.TryParse(tb_createProductStock.Text, out decimal stock) || stock < 0)
+                {
+                    MessageBox.Show("Введіть коректний початковий залишок!", "Помилка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(unit))
+                {
+                    MessageBox.Show("Назва та одиниця виміру не можуть бути пустими!", "Помилка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var existingProduct = _products.FirstOrDefault(p =>
+                    p.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+                if (existingProduct != null)
+                {
+                    MessageBox.Show($"Товар з назвою '{name}' вже існує!", "Помилка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var newProduct = new Product
+                {
+                    Name = name,
+                    Description = string.Empty,
+                    Unit = unit,
+                    Stock = stock,
+                    MinimumStock = 0,
+                    CreatedAt = DateTime.Now
+                };
+
+                var createdProduct = await _productService.CreateAsync(newProduct);
+
+                _products.Add(createdProduct);
+                UpdateProductList(_products);
+                ApplyProductFilters();
+
+                b_createProductPanel.Visibility = Visibility.Collapsed;
+
+                MessageBox.Show("Товар успішно створено!", "Успіх",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка створення товару: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }
