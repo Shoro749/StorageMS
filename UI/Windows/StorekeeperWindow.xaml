@@ -51,6 +51,32 @@
             <Style TargetType="Button" x:Key="DatePickerCalendarButtonStyle">
                 <Setter Property="Background" Value="#D2B48C"/>
             </Style>
+
+            <Style TargetType="DatePicker">
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Background" Value="#2D2D2D"/>
+                <Setter Property="BorderBrush" Value="#333333"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="5"/>
+                <Style.Resources>
+                    <Style TargetType="DatePickerTextBox">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="DatePickerTextBox">
+                                    <Border Background="{TemplateBinding Background}" 
+        BorderThickness="0" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter x:Name="PART_Watermark" 
+                      Content="{TemplateBinding Text}" 
+                      VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="White"/>
+                    </Style>
+                </Style.Resources>
+            </Style>
         </Grid.Resources>
 
         <TabControl Background="Transparent" BorderThickness="0" Margin="10">
@@ -61,26 +87,38 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
-                        <StackPanel Margin="0,0,15,0">
-                            <TextBlock Text="Пошук назви" Foreground="#555555" FontSize="10" Margin="5,0,0,2"/>
-                            <TextBox x:Name="tb_ProductSearch" Width="250" Height="35" 
+                    <Grid Grid.Row="0" Margin="0,0,0,15">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <StackPanel Margin="0,0,15,0">
+                                <TextBlock Text="Пошук назви" Foreground="#555555" FontSize="10" Margin="5,0,0,2"/>
+                                <TextBox x:Name="tb_ProductSearch" Width="250" Height="35" 
                      Background="#1E1E1E" Foreground="White" BorderBrush="#333333" 
                      Padding="10,5" VerticalContentAlignment="Center"
                      TextChanged="OnStockFilterChanged"/>
-                        </StackPanel>
+                            </StackPanel>
 
-                        <StackPanel VerticalAlignment="Bottom" Margin="10,0,0,5">
-                            <CheckBox x:Name="chb_LowStockOnly" Content="Тільки дефіцит" 
+                            <StackPanel VerticalAlignment="Bottom" Margin="10,0,0,5">
+                                <CheckBox x:Name="chb_LowStockOnly" Content="Тільки дефіцит" 
                       Foreground="#E53935" FontWeight="Bold"
                       VerticalContentAlignment="Center"
                       Checked="OnStockFilterChanged" Unchecked="OnStockFilterChanged"/>
+                            </StackPanel>
+
+                            <Button Content="ОНОВИТИ СПИСОК" Margin="20,0,0,0" Height="35" Padding="15,0"
+                VerticalAlignment="Bottom"
+                Background="Transparent" Foreground="#888888" BorderBrush="#333333"
+                Cursor="Hand" Click="Refresh_Click"/>
                         </StackPanel>
 
-                        <Button Content="ОНОВИТИ СПИСОК" Margin="20,0,0,0" Height="35" Padding="15,0"
-                Background="Transparent" Foreground="#888888" BorderBrush="#333333"
-                Click="Refresh_Click"/>
-                    </StackPanel>
+                        <Button HorizontalAlignment="Right" VerticalAlignment="Bottom"
+            Background="#E53935" Foreground="White" 
+            Padding="20,0" Height="35" FontWeight="Bold" BorderThickness="0" 
+            Cursor="Hand" Click="Logout_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="ВИЙТИ" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
 
                     <DataGrid Grid.Row="1" x:Name="dg_ProductsStock" 
           Background="#1E1E1E" Foreground="White" RowBackground="#1E1E1E" 
@@ -197,6 +235,66 @@
                    Foreground="#555555" FontSize="10" HorizontalAlignment="Center" Margin="0,15,0,0"/>
                         </StackPanel>
                     </Border>
+                </Grid>
+            </TabItem>
+            <TabItem Header="НАКЛАДНІ">
+                <Grid Margin="10,20,10,10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="Пошук товару" Foreground="#555555" FontSize="10" Margin="5,0,0,2"/>
+                                <TextBox x:Name="tb_incomingSearch" Width="200" Height="35" Background="#1E1E1E" 
+                             Foreground="White" BorderBrush="#333333" Padding="10,5" 
+                             VerticalContentAlignment="Center" TextChanged="OnIncomingFilterChanged"/>
+                            </StackPanel>
+
+                            <StackPanel Margin="10,0">
+                                <TextBlock Text="Дата отримання" Foreground="#555555" FontSize="10" Margin="5,0,0,2"/>
+                                <DatePicker x:Name="dp_incomingDate" Width="150" Height="35" 
+                                SelectedDateChanged="OnIncomingFilterChanged"/>
+                            </StackPanel>
+
+                            <Button Content="🔄 ОНОВИТИ" Background="Transparent" Foreground="#D2B48C" 
+                        BorderBrush="#D2B48C" BorderThickness="1" Padding="15,0" Height="35" 
+                        VerticalAlignment="Bottom" Cursor="Hand" Click="RefreshIncoming_Click" Margin="0,0,10,0"/>
+                        </StackPanel>
+
+                        <DataGrid x:Name="dg_incomingList" Grid.Row="1" Background="#1E1E1E" 
+                      Foreground="White" RowBackground="#1E1E1E" AlternatingRowBackground="#252525"
+                      BorderThickness="0" GridLinesVisibility="None" AutoGenerateColumns="False"
+                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
+                                <DataGridTextColumn Header="Дата" Binding="{Binding ReceivedAt, StringFormat=\{0:dd.MM.yyyy HH:mm\}}" Width="130"/>
+                                <DataGridTextColumn Header="Товар" Binding="{Binding Product.Name}" Width="*"/>
+                                <DataGridTextColumn Header="Кількість" Binding="{Binding Quantity}" Width="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="Foreground" Value="#4CAF50"/>
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Прийняв" Binding="{Binding ReceivedBy.Name}" Width="150"/>
+
+                                <DataGridTemplateColumn Header="Дії" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="ВІДМІНИТИ" Background="Transparent" Foreground="#FF6666" 
+                                        FontSize="10" FontWeight="Bold" Cursor="Hand" 
+                                        Click="DeleteIncoming_Click" BorderThickness="0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
                 </Grid>
             </TabItem>
         </TabControl>
