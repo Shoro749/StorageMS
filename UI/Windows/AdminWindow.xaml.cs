@@ -708,5 +708,13 @@ namespace UI.Windows
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        private void Logout_Click(object sender, RoutedEventArgs e)
+        {
+            MainWindow mainWindow = new MainWindow();
+            Application.Current.MainWindow = mainWindow;
+            mainWindow.Show();
+            this.Close();
+        }
     }
 }
