@@ -5,6 +5,7 @@ using Service.Interfaces;
 using Service.Services;
 using System.Windows;
 using System.Windows.Controls;
+using static System.Reflection.Metadata.BlobBuilder;
 
 namespace UI.Windows
 {
@@ -23,6 +24,8 @@ namespace UI.Windows
         private List<User> _users;
         private List<Product> _products = new List<Product>();
         private Product _chosenProduct = null;
+        private List<ActionLog> _logs = new List<ActionLog>();
+        private ActionLog _chosenLog = null;
         public AdminWindow(User user, DataContext context)
         {
             InitializeComponent();
@@ -39,6 +42,7 @@ namespace UI.Windows
         {
             await Task.WhenAll(LoadRoles(), LoadUsers());
             await LoadProducts();
+            await LoadLogs();
         }
 
         private async Task LoadUsers()
@@ -51,6 +55,21 @@ namespace UI.Windows
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка завантаження користувачів: {ex.Message}");
+            }
+        }
+
+        private async Task LoadLogs()
+        {
+            try
+            {
+                _logs = await _logService.GetAllAsync();
+                _logs = _logs.OrderByDescending(l => l.CreatedAt).ToList();
+                UpdateLogList(_logs);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка завантаження логів: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -297,6 +316,173 @@ namespace UI.Windows
             }).ToList();
 
             dg_userList.ItemsSource = filtered;
+        }
+
+        // logs tab
+
+        private void UpdateLogList(List<ActionLog> logs)
+        {
+            dg_logList.ItemsSource = logs;
+            dg_logList.Items.Refresh();
+        }
+
+        private void OnLogFilterChanged(object sender, EventArgs e)
+        {
+            if (tb_logSearch == null || dp_logDate == null || _logs == null) return;
+
+            ApplyLogFilters();
+        }
+
+        private void ApplyLogFilters()
+        {
+            string searchText = tb_logSearch.Text.ToLower().Trim();
+            DateTime? selectedDate = dp_logDate.SelectedDate;
+
+            var filtered = _logs.Where(log =>
+            {
+                bool matchesSearch = string.IsNullOrEmpty(searchText) ||
+                                     (log.Action != null && log.Action.ToLower().Contains(searchText));
+
+                bool matchesDate = !selectedDate.HasValue ||
+                                   log.CreatedAt.Date == selectedDate.Value.Date;
+
+                return matchesSearch && matchesDate;
+            })
+            .OrderByDescending(l => l.CreatedAt)
+            .ToList();
+
+            UpdateLogList(filtered);
+        }
+
+        private void LogDetails_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            var selectedLog = button?.DataContext as ActionLog;
+
+            if (selectedLog != null)
+            {
+                tb_logDetailTime.Text = selectedLog.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss");
+                tb_logDetailUser.Text = selectedLog.User?.Name ?? "Невідомий користувач";
+                tb_logDetailAction.Text = selectedLog.Action ?? "Без опису";
+
+                _chosenLog = selectedLog;
+                b_logDetailsPanel.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                MessageBox.Show("Невдалося відкрити деталі лога!", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void CloseLogDetails_Click(object sender, RoutedEventArgs e)
+        {
+            _chosenLog = null;
+            b_logDetailsPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private async void DeleteLog_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = sender as Button;
+            var selectedLog = button?.DataContext as ActionLog;
+
+            if (selectedLog == null)
+            {
+                MessageBox.Show("Не вдалося визначити лог для видалення!", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                var result = MessageBox.Show(
+                    "Ви впевнені, що хочете видалити цей лог?",
+                    "Підтвердження видалення",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    await _logService.DeleteAsync(selectedLog.Id);
+
+                    _logs.Remove(selectedLog);
+                    UpdateLogList(_logs);
+                    ApplyLogFilters();
+
+                    if (_chosenLog?.Id == selectedLog.Id)
+                    {
+                        b_logDetailsPanel.Visibility = Visibility.Collapsed;
+                        _chosenLog = null;
+                    }
+
+                    MessageBox.Show("Лог успішно видалено!", "Успіх",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка видалення лога: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void ClearAllLogs_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_logs.Count == 0)
+                {
+                    MessageBox.Show("Логи відсутні!", "Інформація",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    $"УВАГА! Ви впевнені, що хочете видалити ВСІ логи ({_logs.Count} записів)?\n\nЦю дію неможливо скасувати!",
+                    "Підтвердження очищення",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    var doubleConfirm = MessageBox.Show(
+                        "Остаточне підтвердження. Видалити всі логи?",
+                        "Остаточне підтвердження",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Stop);
+
+                    if (doubleConfirm == MessageBoxResult.Yes)
+                    {
+                        foreach (var log in _logs.ToList())
+                        {
+                            await _logService.DeleteAsync(log.Id);
+                        }
+
+                        var clearLog = new ActionLog
+                        {
+                            Action = $"{_currentUser.Name} очистив всі логи системи ({_logs.Count} записів)",
+                            User = _currentUser,
+                            CreatedAt = DateTime.Now
+                        };
+                        await _logService.CreateAsync(clearLog);
+
+                        _logs.Clear();
+                        _logs.Add(clearLog);
+                        UpdateLogList(_logs);
+
+                        b_logDetailsPanel.Visibility = Visibility.Collapsed;
+                        _chosenLog = null;
+
+                        MessageBox.Show("Всі логи успішно видалено!", "Успіх",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка очищення логів: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // products tab
