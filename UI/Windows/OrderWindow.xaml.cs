@@ -25,28 +25,33 @@ namespace UI.Windows
         public OrderWindow(User user, DataContext context, OutgoingRequest or)
         {
             InitializeComponent();
-            LoadWindow();
             _user = user;
             _productService = new Service<Product>(context);
             _or = or;
+
+            Loaded += Window_Loaded;
         }
 
-        private async void LoadWindow()
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            await LoadWindow();
+        }
+
+        private async Task LoadWindow()
         {
             try
             {
                 cb_ProductPicker.ItemsSource = await _productService.GetAllAsync();
                 cb_ProductPicker.DisplayMemberPath = "Name";
+                cb_ProductPicker.Items.Refresh();
 
                 if (_or != null)
                 {
                     _items = new ObservableCollection<OutgoingItem>(_or.Items ?? new List<OutgoingItem>());
-                    dg_OrderItems.ItemsSource = _or.Items;
+                    dg_OrderItems.ItemsSource = _items;
                     tb_Comment.Text = _or.Comment;
                 }
                 else tb_windowTitle.Text = "СТВОРЕННЯ СКЛАДУ ЗАЯВКИ";
-
-                dg_OrderItems.ItemsSource = _items;
             }
             catch (Exception ex)
             {
@@ -181,7 +186,6 @@ namespace UI.Windows
                 }
 
                 existingItem.Quantity = newQuantity;
-                dg_OrderItems.Items.Refresh();
             }
             else
             {
@@ -196,6 +200,7 @@ namespace UI.Windows
 
             cb_ProductPicker.SelectedIndex = -1;
             txt_InputQuantity.Text = "1";
+            dg_OrderItems.Items.Refresh();
         }
 
         private void RemoveItem_Click(object sender, RoutedEventArgs e)

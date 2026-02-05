@@ -59,127 +59,14 @@
 
 
             <Style TargetType="ComboBox">
-
-                <Setter Property="Background" Value="#2D2D2D"/>
-
-                <Setter Property="Foreground" Value="White"/>
-
-                <Setter Property="BorderBrush" Value="#333333"/>
-
-                <Setter Property="BorderThickness" Value="1"/>
-
-                <Setter Property="Padding" Value="8,5"/>
-
-                <Setter Property="Template">
-
-                    <Setter.Value>
-
-                        <ControlTemplate TargetType="ComboBox">
-
-                            <Grid>
-
-                                <Border x:Name="Border" Background="{TemplateBinding Background}" 
-
-                BorderBrush="{TemplateBinding BorderBrush}" 
-
-                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5"/>
-
-
-
-                                <Grid Margin="{TemplateBinding Padding}">
-
-                                    <Grid.ColumnDefinitions>
-
-                                        <ColumnDefinition Width="*"/>
-
-                                        <ColumnDefinition Width="Auto"/>
-
-                                    </Grid.ColumnDefinitions>
-
-                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" VerticalAlignment="Center"/>
-
-                                    <Path Grid.Column="1" Data="M0,0 L4,4 L8,0" Stroke="#D2B48C" StrokeThickness="2" VerticalAlignment="Center" Margin="5,0,0,0"/>
-
-                                </Grid>
-
-
-
-                                <Popup x:Name="PART_Popup" AllowsTransparency="True" IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}" Placement="Bottom">
-
-                                    <Border Background="#1E1E1E" BorderBrush="#333333" BorderThickness="1" CornerRadius="5" MinWidth="{TemplateBinding ActualWidth}">
-
-                                        <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-
-                                    </Border>
-
-                                </Popup>
-
-                            </Grid>
-
-                            <ControlTemplate.Triggers>
-
-                                <Trigger Property="IsMouseOver" Value="True">
-
-                                    <Setter TargetName="Border" Property="BorderBrush" Value="#D2B48C"/>
-
-                                </Trigger>
-
-                            </ControlTemplate.Triggers>
-
-                        </ControlTemplate>
-
-                    </Setter.Value>
-
-                </Setter>
-
+                <Setter Property="Foreground" Value="Black"/>
+                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
             </Style>
 
-
-
             <Style TargetType="ComboBoxItem">
-
-                <Setter Property="Foreground" Value="White"/>
-
-                <Setter Property="Padding" Value="10,8"/>
-
-                <Setter Property="Template">
-
-                    <Setter.Value>
-
-                        <ControlTemplate TargetType="ComboBoxItem">
-
-                            <Border x:Name="Gd" Background="Transparent" Padding="{TemplateBinding Padding}">
-
-                                <ContentPresenter />
-
-                            </Border>
-
-                            <ControlTemplate.Triggers>
-
-                                <Trigger Property="IsMouseOver" Value="True">
-
-                                    <Setter TargetName="Gd" Property="Background" Value="#333333"/>
-
-                                    <Setter Property="Foreground" Value="#D2B48C"/>
-
-                                </Trigger>
-
-                                <Trigger Property="IsSelected" Value="True">
-
-                                    <Setter TargetName="Gd" Property="Background" Value="#44D2B48C"/>
-
-                                    <Setter Property="Foreground" Value="#D2B48C"/>
-
-                                </Trigger>
-
-                            </ControlTemplate.Triggers>
-
-                        </ControlTemplate>
-
-                    </Setter.Value>
-
-                </Setter>
-
+                <Setter Property="Foreground" Value="Black"/>
+                <Setter Property="Padding" Value="5"/>
             </Style>
         </Grid.Resources>
 
@@ -201,8 +88,8 @@
                     <DataGrid x:Name="dg_OrderItems" Background="Transparent" Foreground="White" 
                           AutoGenerateColumns="False" CanUserAddRows="False" GridLinesVisibility="None">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Товар" Binding="{Binding Name}" Width="*"/>
-                            <DataGridTextColumn Header="Доступно" Binding="{Binding Stock}" Width="80"/>
+                            <DataGridTextColumn Header="Товар" Binding="{Binding Product.Name}" Width="*"/>
+                            <DataGridTextColumn Header="Доступно" Binding="{Binding Product.Stock}" Width="80"/>
                             <DataGridTemplateColumn Header="К-сть" Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

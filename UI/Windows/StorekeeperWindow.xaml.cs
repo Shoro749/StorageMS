@@ -174,7 +174,7 @@ namespace UI.Windows
             this.Close();
         }
 
-        private async Task DeleteIncoming_Click(object sender, RoutedEventArgs e)
+        private async void DeleteIncoming_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button button && button.DataContext is Incoming incomingItem)
             {
@@ -456,6 +456,11 @@ namespace UI.Windows
                 MessageBox.Show($"Помилка відхилення заявки: {ex.Message}", "Помилка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void RefreshIncoming_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

@@ -40,76 +40,33 @@ namespace UI.Windows
 
         private async void AdminWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            await Task.WhenAll(LoadRoles(), LoadUsers());
-            await LoadProducts();
-            await LoadLogs();
-        }
-
-        private async Task LoadUsers()
-        {
             try
             {
+                var roles = await _roleService.GetAllAsync();
                 _users = await _userService.GetAllAsync();
-                UpdateUserList(_users);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка завантаження користувачів: {ex.Message}");
-            }
-        }
-
-        private async Task LoadLogs()
-        {
-            try
-            {
+                _products = await _productService.GetAllAsync();
                 _logs = await _logService.GetAllAsync();
+
+                cb_userRole.ItemsSource = roles;
+                cb_userRole.DisplayMemberPath = "Name";
+                cb_createRole.ItemsSource = roles;
+                cb_createRole.DisplayMemberPath = "Name";
+
+                var filterList = new List<object> { new { Id = 0, Name = "Всі ролі" } };
+                filterList.AddRange(roles);
+                cb_filterRoles.ItemsSource = filterList;
+                cb_filterRoles.DisplayMemberPath = "Name";
+                cb_filterRoles.SelectedIndex = 0;
+
+                UpdateUserList(_users);
+                UpdateProductList(_products);
+
                 _logs = _logs.OrderByDescending(l => l.CreatedAt).ToList();
                 UpdateLogList(_logs);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Помилка завантаження логів: {ex.Message}", "Помилка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private async Task LoadProducts()
-        {
-            try
-            {
-                _products = await _productService.GetAllAsync();
-                UpdateProductList(_products);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка завантаження товарів: {ex.Message}", "Помилка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private async Task LoadRoles()
-        {
-            try
-            {
-                var roles = await _roleService.GetAllAsync();
-
-                cb_userRole.ItemsSource = roles;
-                cb_userRole.DisplayMemberPath = "Name";
-
-                cb_createRole.ItemsSource = roles;
-                cb_createRole.DisplayMemberPath = "Name";
-
-                var filterList = new List<object>();
-                filterList.Add(new { Id = 0, Name = "Всі ролі" });
-                filterList.AddRange(roles);
-
-                cb_filterRoles.ItemsSource = filterList;
-                cb_filterRoles.DisplayMemberPath = "Name";
-                cb_filterRoles.SelectedIndex = 0;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Помилка завантаження ролей: {ex.Message}");
+                MessageBox.Show($"Критична помилка ініціалізації: {ex.Message}");
             }
         }
 
@@ -489,6 +446,7 @@ namespace UI.Windows
 
         private void UpdateProductList(List<Product> products)
         {
+            if (products.Count() == 0) return;
             dg_productList.ItemsSource = products;
             dg_productList.Items.Refresh();
         }
@@ -715,6 +673,31 @@ namespace UI.Windows
             Application.Current.MainWindow = mainWindow;
             mainWindow.Show();
             this.Close();
+        }
+
+        private void PrintReport_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void ExportOutgoingPDF_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void GeneratePreview_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void OnReportTypeChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
+
+        private void ExportIncomingPDF_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
