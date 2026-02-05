@@ -7,6 +7,5 @@
         Task<T> AddAsync(T item);
         Task<T?> UpdateAsync(int id, T item);
         Task<bool> DeleteAsync(int id);
-        Task<bool> ExistsAsync(int id);
     }
 }

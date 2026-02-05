@@ -53,10 +53,5 @@ namespace Repository.Repositories
             await _context.SaveChangesAsync();
             return true;
         }
-
-        public async Task<bool> ExistsAsync(int id)
-        {
-            return await GetByIdAsync(id) != null;
-        }
     }
 }

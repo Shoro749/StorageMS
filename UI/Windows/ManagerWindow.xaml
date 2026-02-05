@@ -183,12 +183,14 @@
                             <Border Grid.Column="0" Background="#1E1E1E" CornerRadius="12" Margin="10" Padding="15">
                                 <StackPanel>
                                     <TextBlock Text="ОЧІКУЮТЬ ОБРОБКИ (PENDING)" Foreground="#888888" FontWeight="Bold" Margin="0,0,0,15"/>
-                                    <DataGrid x:Name="dg_PendingOrders" Background="Transparent" Foreground="White" 
-                                          BorderThickness="0" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                    <DataGrid x:Name="dg_PendingOrders" Background="#1E1E1E" 
+                                          Foreground="White" RowBackground="#1E1E1E" AlternatingRowBackground="#252525"
+                                          BorderThickness="0" GridLinesVisibility="None" AutoGenerateColumns="False"
+                                          CanUserAddRows="False" SelectionMode="Single" IsReadOnly="True"
                                           MaxHeight="300">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
-                                            <DataGridTextColumn Header="Клієнт" Binding="{Binding Client}" Width="*"/>
+                                            <DataGridTextColumn Header="Хто" Binding="{Binding Client}" Width="*"/>
                                             <DataGridTextColumn Header="Дата" Binding="{Binding Date}" Width="100"/>
                                             <DataGridTemplateColumn Width="100">
                                                 <DataGridTemplateColumn.CellTemplate>

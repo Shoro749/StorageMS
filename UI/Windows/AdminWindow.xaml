@@ -276,7 +276,7 @@
                             </DataGrid>
 
                             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-                                <Button Content="🖨️ ДРУКУВАТИ" Background="Transparent" Foreground="#D2B48C" 
+                                <Button Content="ЕКСПОРТ" Background="Transparent" Foreground="#D2B48C" 
                             Padding="20,0" Height="35" BorderBrush="#D2B48C" BorderThickness="1" Click="PrintReport_Click"/>
                             </StackPanel>
                         </Grid>

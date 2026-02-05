@@ -1,5 +1,6 @@
 ﻿using Data.Context;
 using Data.Models;
+using Microsoft.EntityFrameworkCore;
 using Repository.Interfaces;
 using Repository.Repositories;
 using Service.Interfaces;
@@ -22,7 +23,7 @@ namespace UI
             InitializeComponent();
             _context = new DataContext();
             _userService = new UserService(_context);
-            // Seeder();
+            //Seeder();
         }
 
         private async void Login_Click(object sender, RoutedEventArgs e)
@@ -98,42 +99,52 @@ namespace UI
                 //await role.CreateAsync(role2);
                 //await role.CreateAsync(role3);
 
+                var user = await _userService.GetByUsername("Tony Pepperoni");
+
                 var products = new List<Product>
                 {
-                    new Product { Id = 1, Name = "Кабель живлення 1.5м", Unit = "шт", Stock = 50, MinimumStock = 10, Description = "Мідний кабель" },
-                    new Product { Id = 2, Name = "Монітор 24\" IPS", Unit = "шт", Stock = 3, MinimumStock = 5, Description = "Офісний монітор" },
-                    new Product { Id = 3, Name = "Мишка бездротова", Unit = "шт", Stock = 0, MinimumStock = 5, Description = "Logitech B170" },
-                    new Product { Id = 4, Name = "Клавіатура мембранна", Unit = "шт", Stock = 15, MinimumStock = 5, Description = "Стандартна USB" },
-                    new Product { Id = 5, Name = "Патч-корд 3м", Unit = "шт", Stock = 100, MinimumStock = 20, Description = "CAT5e" }
+                    new Product { Name = "Кабель живлення 1.5м", Unit = "шт", Stock = 50, MinimumStock = 10, Description = "Мідний кабель" },
+                    new Product { Name = "Монітор 24\" IPS", Unit = "шт", Stock = 3, MinimumStock = 5, Description = "Офісний монітор" },
+                    new Product { Name = "Мишка бездротова", Unit = "шт", Stock = 0, MinimumStock = 5, Description = "Logitech B170" },
+                    new Product { Name = "Клавіатура мембранна", Unit = "шт", Stock = 15, MinimumStock = 5, Description = "Стандартна USB" },
+                    new Product { Name = "Патч-корд 3м", Unit = "шт", Stock = 100, MinimumStock = 20, Description = "CAT5e" }
                 };
                 var requests = new List<OutgoingRequest>
                 {
-                    new OutgoingRequest { Id = 1, Status = "Completed", Comment = "Для відділу маркетингу", CreatedAt = DateTime.Now.AddDays(-5) },
-                    new OutgoingRequest { Id = 2, Status = "Pending", Comment = "Термінова заміна обладнання", CreatedAt = DateTime.Now.AddDays(-2) },
-                    new OutgoingRequest { Id = 3, Status = "Rejected", Comment = "Не вказано причину видачі", CreatedAt = DateTime.Now.AddDays(-1) },
-                    new OutgoingRequest { Id = 4, Status = "Completed", Comment = "Облаштування нового робочого місця", CreatedAt = DateTime.Now.AddHours(-10) },
-                    new OutgoingRequest { Id = 5, Status = "Pending", Comment = "Запасні комплектуючі на склад", CreatedAt = DateTime.Now.AddHours(-2) }
-                };
-                var items = new List<OutgoingItem>
-                {
-                    // До заявки №1
-                    new OutgoingItem { Id = 1, Quantity = 2, Product = products[0], Request = requests[0] },
-                    new OutgoingItem { Id = 2, Quantity = 1, Product = products[3], Request = requests[0] },
-    
-                    // До заявки №2
-                    new OutgoingItem { Id = 3, Quantity = 1, Product = products[1], Request = requests[1] },
-    
-                    // До заявки №4
-                    new OutgoingItem { Id = 4, Quantity = 5, Product = products[4], Request = requests[3] },
-    
-                    // До заявки №5
-                    new OutgoingItem { Id = 5, Quantity = 10, Product = products[0], Request = requests[4] }
+                    new OutgoingRequest { Status = "Completed", Comment = "Для відділу маркетингу", CreatedAt = DateTime.Now.AddDays(-5), CreatedBy = user },
+                    new OutgoingRequest { Status = "Pending", Comment = "Термінова заміна обладнання", CreatedAt = DateTime.Now.AddDays(-2), CreatedBy = user },
+                    new OutgoingRequest { Status = "Rejected", Comment = "Не вказано причину видачі", CreatedAt = DateTime.Now.AddDays(-1), CreatedBy = user },
+                    new OutgoingRequest { Status = "Completed", Comment = "Облаштування нового робочого місця", CreatedAt = DateTime.Now.AddHours(-10), CreatedBy = user },
+                    new OutgoingRequest { Status = "Pending", Comment = "Запасні комплектуючі на склад", CreatedAt = DateTime.Now.AddHours(-2), CreatedBy = user }
                 };
 
                 await _context.Products.AddRangeAsync(products);
                 await _context.OutgoingRequests.AddRangeAsync(requests);
+                await _context.SaveChangesAsync();
+
+                var items = new List<OutgoingItem>
+                {
+                    // До заявки №1
+                    new OutgoingItem { Quantity = 2, Product = products[0], Request = requests[0] },
+                    new OutgoingItem { Quantity = 1, Product = products[3], Request = requests[0] },
+    
+                    // До заявки №2
+                    new OutgoingItem { Quantity = 1, Product = products[1], Request = requests[1] },
+    
+                    // До заявки №4
+                    new OutgoingItem { Quantity = 5, Product = products[4], Request = requests[3] },
+    
+                    // До заявки №5
+                    new OutgoingItem { Quantity = 10, Product = products[0], Request = requests[4] }
+                };
+
                 await _context.OutgoingItems.AddRangeAsync(items);
                 await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                var message = ex.InnerException?.Message ?? ex.Message;
+                MessageBox.Show($"Помилка бази даних: {message}");
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         } 
