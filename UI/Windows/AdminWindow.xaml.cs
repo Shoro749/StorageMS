@@ -699,5 +699,15 @@ namespace UI.Windows
         {
 
         }
+
+        private void ExportToJson_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void ImportFromJson_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

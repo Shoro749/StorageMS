@@ -51,10 +51,5 @@ namespace Service.Services
 
             return true;
         }
-
-        public async Task<bool> ExistsAsync(int id)
-        {
-            return await _repository.ExistsAsync(id);
-        }
     }
 }

@@ -522,6 +522,67 @@
                     </Border>
                 </Grid>
             </TabItem>
+            <TabItem Header="РЕЗЕРВУВАННЯ">
+                <Grid Margin="20">
+                    <StackPanel MaxWidth="600" HorizontalAlignment="Center" VerticalAlignment="Top">
+
+                        <TextBlock Text="КЕРУВАННЯ ДАНИМИ (JSON)" Foreground="#D2B48C" 
+                       FontSize="20" FontWeight="Bold" Margin="0,0,0,30" HorizontalAlignment="Center"/>
+
+                        <Border Background="#1E1E1E" CornerRadius="10" Padding="20" Margin="0,0,0,20">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <TextBlock Text="📥" FontSize="24" Margin="0,0,10,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="Експорт бази даних" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                                        <TextBlock Text="Створити повну резервну копію всіх таблиць у форматі JSON" 
+                                       Foreground="#888888" FontSize="11"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Button Content="ЗБЕРЕГТИ РЕЗЕРВНУ КОПІЮ" Background="#333333" Foreground="White" 
+                            Height="45" FontWeight="Bold" BorderThickness="0" Cursor="Hand"
+                            Click="ExportToJson_Click">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="5"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#1E1E1E" CornerRadius="10" Padding="20">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <TextBlock Text="📤" FontSize="24" Margin="0,0,10,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="Імпорт даних" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                                        <TextBlock Text="Відновити стан бази даних із раніше створеного JSON-файлу" 
+                                       Foreground="#888888" FontSize="11"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <TextBlock Text="Увага! Поточні дані можуть бути перезаписані." 
+                               Foreground="#E57373" FontSize="10" Margin="0,0,0,10" FontStyle="Italic"/>
+
+                                <Button Content="ВІДНОВИТИ З ФАЙЛУ" Background="#2D2D2D" Foreground="#D2B48C" 
+                            Height="45" FontWeight="Bold" BorderBrush="#D2B48C" BorderThickness="1" 
+                            Cursor="Hand" Click="ImportFromJson_Click">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="5"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="Останнє резервування: сьогодні о 12:40" 
+                       Foreground="#555555" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>
