@@ -1,8 +1,12 @@
 ﻿using Data.Context;
 using Data.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
 using Service.Interfaces;
 using Service.Services;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using static System.Reflection.Metadata.BlobBuilder;
@@ -20,12 +24,16 @@ namespace UI.Windows
         private readonly IService<Role> _roleService;
         private readonly IService<ActionLog> _logService;
         private readonly IService<Product> _productService;
+        private readonly IService<Incoming> _incomingService;
+        private readonly IService<OutgoingItem> _itemService;
+        private readonly IService<OutgoingRequest> _requestService;
         
         private List<User> _users;
         private List<Product> _products = new List<Product>();
         private Product _chosenProduct = null;
         private List<ActionLog> _logs = new List<ActionLog>();
         private ActionLog _chosenLog = null;
+        private DateTime? _lastBackupTime = null;
         public AdminWindow(User user, DataContext context)
         {
             InitializeComponent();
@@ -34,6 +42,9 @@ namespace UI.Windows
             _roleService = new Service<Role>(context);
             _logService = new Service<ActionLog>(context);
             _productService = new Service<Product>(context);
+            _incomingService = new Service<Incoming>(context);
+            _itemService = new Service<OutgoingItem>(context);
+            _requestService = new Service<OutgoingRequest>(context);
 
             this.Loaded += AdminWindow_Loaded;
         }
@@ -63,10 +74,45 @@ namespace UI.Windows
 
                 _logs = _logs.OrderByDescending(l => l.CreatedAt).ToList();
                 UpdateLogList(_logs);
+
+                var backupLog = _logs
+                    .Where(l => l.Action.Contains("created a backup"))
+                    .OrderByDescending(l => l.CreatedAt)
+                    .FirstOrDefault();
+
+                if (backupLog != null)
+                {
+                    _lastBackupTime = backupLog.CreatedAt;
+                    UpdateBackupLabel();
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Критична помилка ініціалізації: {ex.Message}");
+            }
+        }
+
+        private void UpdateBackupLabel()
+        {
+            if (_lastBackupTime.HasValue)
+            {
+                var time = _lastBackupTime.Value;
+                string timeText;
+
+                if (time.Date == DateTime.Today)
+                {
+                    timeText = $"сьогодні о {time:HH:mm}";
+                }
+                else if (time.Date == DateTime.Today.AddDays(-1))
+                {
+                    timeText = $"вчора о {time:HH:mm}";
+                }
+                else
+                {
+                    timeText = time.ToString("dd.MM.yyyy о HH:mm");
+                }
+
+                tb_LastBackup.Text = $"Останнє резервування: {timeText}";
             }
         }
 
@@ -700,14 +746,228 @@ namespace UI.Windows
 
         }
 
-        private void ExportToJson_Click(object sender, RoutedEventArgs e)
+        private async void ExportToJson_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                var result = MessageBox.Show(
+                    "Створити повну резервну копію бази даних?\n\nЦе може зайняти деякий час.",
+                    "Підтвердження експорту",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
 
+                if (result != MessageBoxResult.Yes)
+                    return;
+
+                var saveDialog = new SaveFileDialog
+                {
+                    FileName = $"Backup_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json",
+                    Filter = "JSON файли (*.json)|*.json|Всі файли (*.*)|*.*",
+                    Title = "Зберегти резервну копію"
+                };
+
+                if (saveDialog.ShowDialog() != true)
+                    return;
+
+                var backup = new BackupData
+                {
+                    BackupDate = DateTime.Now,
+                    Users = await _userService.GetAllAsync(),
+                    Roles = await _roleService.GetAllAsync(),
+                    Products = await _productService.GetAllAsync(),
+                    Incomings = await _incomingService.GetAllAsync(),
+                    OutgoingRequests = await _requestService.GetAllAsync(),
+                    OutgoingItems = await _itemService.GetAllAsync(),
+                    ActionLogs = await _logService.GetAllAsync()
+                };
+
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    ReferenceHandler = ReferenceHandler.IgnoreCycles,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+
+                string json = JsonSerializer.Serialize(backup, options);
+
+                await File.WriteAllTextAsync(saveDialog.FileName, json);
+
+                await _logService.CreateAsync(new ActionLog
+                {
+                    Action = $"{_currentUser.Name} created a backup ({backup.Users.Count} users, {backup.Products.Count} products, {backup.OutgoingRequests.Count} requests)",
+                    User = _currentUser,
+                });
+
+                _lastBackupTime = DateTime.Now;
+                UpdateBackupLabel();
+
+                MessageBox.Show(
+                    $"Резервну копію успішно створено!\n\nФайл: {saveDialog.FileName}\n\nВсього збережено:\n" +
+                    $"• Користувачів: {backup.Users.Count}\n" +
+                    $"• Ролей: {backup.Roles.Count}\n" +
+                    $"• Товарів: {backup.Products.Count}\n" +
+                    $"• Надходжень: {backup.Incomings.Count}\n" +
+                    $"• Заявок: {backup.OutgoingRequests.Count}\n" +
+                    $"• Позицій у заявках: {backup.OutgoingItems.Count}\n" +
+                    $"• Логів: {backup.ActionLogs.Count}",
+                    "Успіх",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Помилка створення резервної копії:\n\n{ex.Message}",
+                    "Помилка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
-        private void ImportFromJson_Click(object sender, RoutedEventArgs e)
+        private async void ImportFromJson_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                var warning = MessageBox.Show(
+                    "УВАГА! Відновлення з резервної копії:\n\n" +
+                    "• Видалить ВСІ поточні дані\n" +
+                    "• Замінить їх даними з файлу\n" +
+                    "• Цю операцію НЕМОЖЛИВО скасувати\n\n" +
+                    "Ви впевнені, що хочете продовжити?",
+                    "Критичне попередження",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
 
+                if (warning != MessageBoxResult.Yes)
+                    return;
+
+                var openDialog = new OpenFileDialog
+                {
+                    Filter = "JSON файли (*.json)|*.json|Всі файли (*.*)|*.*",
+                    Title = "Виберіть файл резервної копії"
+                };
+
+                if (openDialog.ShowDialog() != true)
+                    return;
+
+                string json = await File.ReadAllTextAsync(openDialog.FileName);
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    ReferenceHandler = ReferenceHandler.IgnoreCycles
+                };
+
+                BackupData? backup = JsonSerializer.Deserialize<BackupData>(json, options);
+
+                if (backup == null)
+                {
+                    MessageBox.Show("Не вдалося прочитати файл резервної копії!", "Помилка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var finalConfirm = MessageBox.Show(
+                    $"Знайдено резервну копію від {backup.BackupDate:dd.MM.yyyy HH:mm}\n\n" +
+                    $"Буде відновлено:\n" +
+                    $"• Користувачів: {backup.Users.Count}\n" +
+                    $"• Ролей: {backup.Roles.Count}\n" +
+                    $"• Товарів: {backup.Products.Count}\n" +
+                    $"• Надходжень: {backup.Incomings.Count}\n" +
+                    $"• Заявок: {backup.OutgoingRequests.Count}\n" +
+                    $"• Позицій у заявках: {backup.OutgoingItems.Count}\n" +
+                    $"• Логів: {backup.ActionLogs.Count}\n\n" +
+                    "ПІДТВЕРДИТИ ВІДНОВЛЕННЯ?",
+                    "Остаточне підтвердження",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (finalConfirm != MessageBoxResult.Yes)
+                    return;
+
+                await ClearAllData();
+                await RestoreData(backup);
+
+                await _logService.CreateAsync(new ActionLog
+                {
+                    Action = $"{_currentUser.Name} restored the database from a backup from {backup.BackupDate:dd.MM.yyyy HH:mm}",
+                    User = _currentUser,
+                    CreatedAt = DateTime.Now
+                });
+
+                MessageBox.Show(
+                    "Базу даних успішно відновлено!\n\nПрограма буде перезапущена.",
+                    "Успіх",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                System.Diagnostics.Process.Start(
+                    System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Помилка відновлення з резервної копії:\n\n{ex.Message}",
+                    "Помилка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ClearAllData()
+        {
+            var logs = await _logService.GetAllAsync();
+            foreach (var log in logs)
+                await _logService.DeleteAsync(log.Id);
+
+            var items = await _itemService.GetAllAsync();
+            foreach (var item in items)
+                await _itemService.DeleteAsync(item.Id);
+
+            var requests = await _requestService.GetAllAsync();
+            foreach (var request in requests)
+                await _requestService.DeleteAsync(request.Id);
+
+            var incomings = await _incomingService.GetAllAsync();
+            foreach (var incoming in incomings)
+                await _incomingService.DeleteAsync(incoming.Id);
+
+            var products = await _productService.GetAllAsync();
+            foreach (var product in products)
+                await _productService.DeleteAsync(product.Id);
+
+            var users = await _userService.GetAllAsync();
+            foreach (var user in users)
+                await _userService.DeleteAsync(user.Id);
+
+            var roles = await _roleService.GetAllAsync();
+            foreach (var role in roles)
+                await _roleService.DeleteAsync(role.Id);
+        }
+
+        private async Task RestoreData(BackupData backup)
+        {
+            foreach (var role in backup.Roles)
+                await _roleService.CreateAsync(role);
+
+            foreach (var user in backup.Users)
+                await _userService.CreateAsync(user);
+
+            foreach (var product in backup.Products)
+                await _productService.CreateAsync(product);
+
+            foreach (var incoming in backup.Incomings)
+                await _incomingService.CreateAsync(incoming);
+
+            foreach (var request in backup.OutgoingRequests)
+                await _requestService.CreateAsync(request);
+
+            foreach (var item in backup.OutgoingItems)
+                await _itemService.CreateAsync(item);
+
+            foreach (var log in backup.ActionLogs)
+                await _logService.CreateAsync(log);
         }
     }
 }

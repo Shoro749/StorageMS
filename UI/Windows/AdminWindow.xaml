@@ -578,7 +578,7 @@
                             </StackPanel>
                         </Border>
 
-                        <TextBlock Text="Останнє резервування: сьогодні о 12:40" 
+                        <TextBlock x:Name="tb_LastBackup" Text="Останнє резервування: ніколи" 
                        Foreground="#555555" HorizontalAlignment="Center" Margin="0,20,0,0"/>
                     </StackPanel>
                 </Grid>
