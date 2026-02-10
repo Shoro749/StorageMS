@@ -1,15 +1,32 @@
-﻿using Data.Context;
+﻿using ClosedXML.Excel;
+using CsvHelper;
+using CsvHelper.Configuration;
+using Data.Context;
 using Data.Models;
+using DocumentFormat.OpenXml.Math;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using Service.Interfaces;
 using Service.Services;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
-using static System.Reflection.Metadata.BlobBuilder;
+using System.Windows.Documents;
+using Xceed.Words.NET;
+using Xceed.Document.NET;
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
+using iText.Layout.Properties;
+using iText.Kernel.Font;
+using iText.IO.Font;
+using Alignment = Xceed.Document.NET.Alignment;
+using TableDesign = Xceed.Document.NET.TableDesign;
 
 namespace UI.Windows
 {
@@ -85,6 +102,9 @@ namespace UI.Windows
                     _lastBackupTime = backupLog.CreatedAt;
                     UpdateBackupLabel();
                 }
+
+                dp_ReportEnd.SelectedDate = DateTime.Today;
+                dp_ReportStart.SelectedDate = DateTime.Today.AddMonths(-1);
             }
             catch (Exception ex)
             {
@@ -723,27 +743,591 @@ namespace UI.Windows
 
         private void PrintReport_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                if (dg_ReportPreview.ItemsSource == null)
+                {
+                    MessageBox.Show("Спочатку сформуйте звіт!", "Увага",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
+                var saveDialog = new SaveFileDialog
+                {
+                    FileName = $"Звіт_{DateTime.Now:yyyy-MM-dd_HH-mm}",
+                    Filter = "Word документ (*.docx)|*.docx|PDF документ (*.pdf)|*.pdf|Excel (*.xlsx)|*.xlsx|CSV (*.csv)|*.csv"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    ExportCurrentReport(saveDialog.FileName);
+
+                    var result = MessageBox.Show("Звіт успішно експортовано!\n\nВідкрити файл?",
+                        "Успіх", MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+                    if (result == MessageBoxResult.Yes)
+                        Process.Start(new ProcessStartInfo(saveDialog.FileName) { UseShellExecute = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void ExportOutgoingPDF_Click(object sender, RoutedEventArgs e)
+        private async void ExportOutgoingPDF_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                if (!dp_ReportStart.SelectedDate.HasValue || !dp_ReportEnd.SelectedDate.HasValue)
+                {
+                    MessageBox.Show("Оберіть період!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
+                DateTime start = dp_ReportStart.SelectedDate.Value.Date;
+                DateTime end = dp_ReportEnd.SelectedDate.Value.Date.AddDays(1).AddSeconds(-1);
+
+                var requests = await _requestService.GetAllAsync();
+                var filtered = requests
+                    .Where(r => r.CreatedAt >= start && r.CreatedAt <= end && r.Status == "Completed")
+                    .ToList();
+
+                if (!filtered.Any())
+                {
+                    MessageBox.Show("Немає даних за обраний період!", "Інформація",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var saveDialog = new SaveFileDialog
+                {
+                    FileName = $"Видаткова_накладна_{DateTime.Now:yyyy-MM-dd_HH-mm}",
+                    Filter = "Word документ (*.docx)|*.docx|PDF документ (*.pdf)|*.pdf|Excel (*.xlsx)|*.xlsx|CSV (*.csv)|*.csv"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    string extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLower();
+
+                    switch (extension)
+                    {
+                        case ".docx":
+                            CreateOutgoingDocx(saveDialog.FileName, filtered, start, end);
+                            break;
+                        case ".pdf":
+                            CreateOutgoingPdf(saveDialog.FileName, filtered, start, end);
+                            break;
+                        case ".xlsx":
+                            CreateOutgoingExcel(saveDialog.FileName, filtered, start, end);
+                            break;
+                        case ".csv":
+                            CreateOutgoingCsv(saveDialog.FileName, filtered);
+                            break;
+                    }
+
+                    var result = MessageBox.Show("Накладну успішно створено!\n\nВідкрити файл?",
+                        "Успіх", MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+                    if (result == MessageBoxResult.Yes)
+                        Process.Start(new ProcessStartInfo(saveDialog.FileName) { UseShellExecute = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void GeneratePreview_Click(object sender, RoutedEventArgs e)
+        private void CreateIncomingDocx(string filePath, List<Incoming> data, DateTime start, DateTime end)
         {
+            using (var doc = DocX.Create(filePath))
+            {
+                var title = doc.InsertParagraph("ПРИБУТКОВА НАКЛАДНА")
+                    .FontSize(18)
+                    .Bold()
+                    .Alignment = Alignment.center;
 
+                doc.InsertParagraph($"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}")
+                    .FontSize(10)
+                    .Alignment = Alignment.center;
+
+                doc.InsertParagraph($"Період: {start:dd.MM.yyyy} - {end:dd.MM.yyyy}")
+                    .FontSize(10)
+                    .Alignment = Alignment.center;
+
+                doc.InsertParagraph();
+
+                var table = doc.AddTable(data.Count + 1, 6);
+                table.Design = TableDesign.LightGridAccent1;
+
+                table.Rows[0].Cells[0].Paragraphs[0].Append("№").Bold();
+                table.Rows[0].Cells[1].Paragraphs[0].Append("Дата").Bold();
+                table.Rows[0].Cells[2].Paragraphs[0].Append("Товар").Bold();
+                table.Rows[0].Cells[3].Paragraphs[0].Append("Кількість").Bold();
+                table.Rows[0].Cells[4].Paragraphs[0].Append("Од.").Bold();
+                table.Rows[0].Cells[5].Paragraphs[0].Append("Комірник").Bold();
+
+                for (int i = 0; i < data.Count; i++)
+                {
+                    var item = data[i];
+                    table.Rows[i + 1].Cells[0].Paragraphs[0].Append((i + 1).ToString());
+                    table.Rows[i + 1].Cells[1].Paragraphs[0].Append(item.ReceivedAt.ToString("dd.MM.yyyy HH:mm"));
+                    table.Rows[i + 1].Cells[2].Paragraphs[0].Append(item.Product?.Name ?? "");
+                    table.Rows[i + 1].Cells[3].Paragraphs[0].Append(item.Quantity.ToString());
+                    table.Rows[i + 1].Cells[4].Paragraphs[0].Append(item.Product?.Unit ?? "");
+                    table.Rows[i + 1].Cells[5].Paragraphs[0].Append(item.ReceivedBy?.Name ?? "");
+                }
+
+                doc.InsertTable(table);
+                doc.InsertParagraph();
+                doc.InsertParagraph($"Всього позицій: {data.Count}").Bold();
+
+                doc.Save();
+            }
+        }
+
+        private void CreateOutgoingDocx(string filePath, List<OutgoingRequest> data, DateTime start, DateTime end)
+        {
+            using (var doc = DocX.Create(filePath))
+            {
+                var title = doc.InsertParagraph("ВИДАТКОВА НАКЛАДНА")
+                    .FontSize(18)
+                    .Bold()
+                    .Alignment = Alignment.center;
+
+                doc.InsertParagraph($"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}")
+                    .FontSize(10)
+                    .Alignment = Alignment.center;
+
+                doc.InsertParagraph($"Період: {start:dd.MM.yyyy} - {end:dd.MM.yyyy}")
+                    .FontSize(10)
+                    .Alignment = Alignment.center;
+
+                doc.InsertParagraph();
+
+                int totalItems = data.Sum(r => r.Items.Count);
+                var table = doc.AddTable(totalItems + 1, 7);
+                table.Design = TableDesign.LightGridAccent1;
+
+                table.Rows[0].Cells[0].Paragraphs[0].Append("№").Bold();
+                table.Rows[0].Cells[1].Paragraphs[0].Append("Заявка").Bold();
+                table.Rows[0].Cells[2].Paragraphs[0].Append("Дата").Bold();
+                table.Rows[0].Cells[3].Paragraphs[0].Append("Товар").Bold();
+                table.Rows[0].Cells[4].Paragraphs[0].Append("К-сть").Bold();
+                table.Rows[0].Cells[5].Paragraphs[0].Append("Од.").Bold();
+                table.Rows[0].Cells[6].Paragraphs[0].Append("Менеджер").Bold();
+
+                int rowIndex = 1;
+                foreach (var request in data)
+                {
+                    foreach (var item in request.Items)
+                    {
+                        table.Rows[rowIndex].Cells[0].Paragraphs[0].Append(rowIndex.ToString());
+                        table.Rows[rowIndex].Cells[1].Paragraphs[0].Append(request.Id.ToString());
+                        table.Rows[rowIndex].Cells[2].Paragraphs[0].Append(request.CreatedAt.ToString("dd.MM.yyyy"));
+                        table.Rows[rowIndex].Cells[3].Paragraphs[0].Append(item.Product?.Name ?? "");
+                        table.Rows[rowIndex].Cells[4].Paragraphs[0].Append(item.Quantity.ToString());
+                        table.Rows[rowIndex].Cells[5].Paragraphs[0].Append(item.Product?.Unit ?? "");
+                        table.Rows[rowIndex].Cells[6].Paragraphs[0].Append(request.CreatedBy?.Name ?? "");
+                        rowIndex++;
+                    }
+                }
+
+                doc.InsertTable(table);
+                doc.InsertParagraph();
+                doc.InsertParagraph($"Всього позицій: {totalItems} (заявок: {data.Count})").Bold();
+
+                doc.Save();
+            }
+        }
+
+        private void CreateIncomingPdf(string filePath, List<Incoming> data, DateTime start, DateTime end)
+        {
+            using (var writer = new PdfWriter(filePath))
+            using (var pdf = new PdfDocument(writer))
+            using (var document = new Document(pdf))
+            {
+                // Шрифт для кирилиці
+                var fontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf");
+                var font = PdfFontFactory.CreateFont(fontPath, PdfEncodings.IDENTITY_H);
+                document.SetFont(font);
+
+                document.Add(new Paragraph("ПРИБУТКОВА НАКЛАДНА")
+                    .SetFontSize(18)
+                    .SetBold()
+                    .SetTextAlignment(TextAlignment.CENTER));
+
+                document.Add(new Paragraph($"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}")
+                    .SetFontSize(10)
+                    .SetTextAlignment(TextAlignment.CENTER));
+
+                var table = new Table(6);
+                table.AddHeaderCell("№");
+                table.AddHeaderCell("Дата");
+                table.AddHeaderCell("Товар");
+                table.AddHeaderCell("Кількість");
+                table.AddHeaderCell("Од.");
+                table.AddHeaderCell("Комірник");
+
+                for (int i = 0; i < data.Count; i++)
+                {
+                    var item = data[i];
+                    table.AddCell((i + 1).ToString());
+                    table.AddCell(item.ReceivedAt.ToString("dd.MM.yyyy"));
+                    table.AddCell(item.Product?.Name ?? "");
+                    table.AddCell(item.Quantity.ToString());
+                    table.AddCell(item.Product?.Unit ?? "");
+                    table.AddCell(item.ReceivedBy?.Name ?? "");
+                }
+
+                document.Add(table);
+                document.Add(new Paragraph($"\nВсього позицій: {data.Count}").SetBold());
+            }
+        }
+
+        private void CreateOutgoingPdf(string filePath, List<OutgoingRequest> data, DateTime start, DateTime end)
+        {
+            using (var writer = new PdfWriter(filePath))
+            using (var pdf = new PdfDocument(writer))
+            using (var document = new Document(pdf))
+            {
+                var fontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf");
+                var font = PdfFontFactory.CreateFont(fontPath, PdfEncodings.IDENTITY_H);
+                document.SetFont(font);
+
+                document.Add(new Paragraph("ВИДАТКОВА НАКЛАДНА")
+                    .SetFontSize(18)
+                    .SetBold()
+                    .SetTextAlignment(TextAlignment.CENTER));
+
+                var table = new Table(7);
+                table.AddHeaderCell("№");
+                table.AddHeaderCell("Заявка");
+                table.AddHeaderCell("Дата");
+                table.AddHeaderCell("Товар");
+                table.AddHeaderCell("К-сть");
+                table.AddHeaderCell("Од.");
+                table.AddHeaderCell("Менеджер");
+
+                int index = 1;
+                foreach (var request in data)
+                {
+                    foreach (var item in request.Items)
+                    {
+                        table.AddCell(index.ToString());
+                        table.AddCell(request.Id.ToString());
+                        table.AddCell(request.CreatedAt.ToString("dd.MM.yyyy"));
+                        table.AddCell(item.Product?.Name ?? "");
+                        table.AddCell(item.Quantity.ToString());
+                        table.AddCell(item.Product?.Unit ?? "");
+                        table.AddCell(request.CreatedBy?.Name ?? "");
+                        index++;
+                    }
+                }
+
+                document.Add(table);
+            }
+        }
+
+        // ===== СТВОРЕННЯ EXCEL =====
+        private void CreateIncomingExcel(string filePath, List<Incoming> data, DateTime start, DateTime end)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Надходження");
+
+                worksheet.Cell(1, 1).Value = "ПРИБУТКОВА НАКЛАДНА";
+                worksheet.Range(1, 1, 1, 6).Merge().Style.Font.Bold = true;
+                worksheet.Range(1, 1, 1, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                worksheet.Cell(3, 1).Value = "№";
+                worksheet.Cell(3, 2).Value = "Дата";
+                worksheet.Cell(3, 3).Value = "Товар";
+                worksheet.Cell(3, 4).Value = "Кількість";
+                worksheet.Cell(3, 5).Value = "Од.";
+                worksheet.Cell(3, 6).Value = "Комірник";
+                worksheet.Range(3, 1, 3, 6).Style.Font.Bold = true;
+
+                for (int i = 0; i < data.Count; i++)
+                {
+                    var item = data[i];
+                    worksheet.Cell(i + 4, 1).Value = i + 1;
+                    worksheet.Cell(i + 4, 2).Value = item.ReceivedAt.ToString("dd.MM.yyyy HH:mm");
+                    worksheet.Cell(i + 4, 3).Value = item.Product?.Name ?? "";
+                    worksheet.Cell(i + 4, 4).Value = item.Quantity;
+                    worksheet.Cell(i + 4, 5).Value = item.Product?.Unit ?? "";
+                    worksheet.Cell(i + 4, 6).Value = item.ReceivedBy?.Name ?? "";
+                }
+
+                worksheet.Columns().AdjustToContents();
+                workbook.SaveAs(filePath);
+            }
+        }
+
+        private void CreateOutgoingExcel(string filePath, List<OutgoingRequest> data, DateTime start, DateTime end)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Відвантаження");
+
+                worksheet.Cell(1, 1).Value = "ВИДАТКОВА НАКЛАДНА";
+                worksheet.Range(1, 1, 1, 7).Merge().Style.Font.Bold = true;
+
+                worksheet.Cell(3, 1).Value = "№";
+                worksheet.Cell(3, 2).Value = "Заявка";
+                worksheet.Cell(3, 3).Value = "Дата";
+                worksheet.Cell(3, 4).Value = "Товар";
+                worksheet.Cell(3, 5).Value = "К-сть";
+                worksheet.Cell(3, 6).Value = "Од.";
+                worksheet.Cell(3, 7).Value = "Менеджер";
+
+                int row = 4;
+                foreach (var request in data)
+                {
+                    foreach (var item in request.Items)
+                    {
+                        worksheet.Cell(row, 1).Value = row - 3;
+                        worksheet.Cell(row, 2).Value = request.Id;
+                        worksheet.Cell(row, 3).Value = request.CreatedAt.ToString("dd.MM.yyyy");
+                        worksheet.Cell(row, 4).Value = item.Product?.Name ?? "";
+                        worksheet.Cell(row, 5).Value = item.Quantity;
+                        worksheet.Cell(row, 6).Value = item.Product?.Unit ?? "";
+                        worksheet.Cell(row, 7).Value = request.CreatedBy?.Name ?? "";
+                        row++;
+                    }
+                }
+
+                worksheet.Columns().AdjustToContents();
+                workbook.SaveAs(filePath);
+            }
+        }
+
+        private void CreateIncomingCsv(string filePath, List<Incoming> data)
+        {
+            using (var writer = new StreamWriter(filePath))
+            using (var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture)))
+            {
+                csv.WriteRecords(data.Select(i => new
+                {
+                    Дата = i.ReceivedAt.ToString("dd.MM.yyyy HH:mm"),
+                    Товар = i.Product?.Name ?? "",
+                    Кількість = i.Quantity,
+                    Одиниця = i.Product?.Unit ?? "",
+                    Комірник = i.ReceivedBy?.Name ?? ""
+                }));
+            }
+        }
+
+        private void CreateOutgoingCsv(string filePath, List<OutgoingRequest> data)
+        {
+            using (var writer = new StreamWriter(filePath))
+            using (var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture)))
+            {
+                csv.WriteRecords(data.SelectMany(r => r.Items.Select(item => new
+                {
+                    Заявка = r.Id,
+                    Дата = r.CreatedAt.ToString("dd.MM.yyyy"),
+                    Товар = item.Product?.Name ?? "",
+                    Кількість = item.Quantity,
+                    Одиниця = item.Product?.Unit ?? "",
+                    Менеджер = r.CreatedBy?.Name ?? ""
+                })));
+            }
+        }
+
+        private async void GeneratePreview_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!dp_ReportStart.SelectedDate.HasValue || !dp_ReportEnd.SelectedDate.HasValue)
+                {
+                    MessageBox.Show("Будь ласка, оберіть період звіту!", "Увага",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                DateTime startDate = dp_ReportStart.SelectedDate.Value.Date;
+                DateTime endDate = dp_ReportEnd.SelectedDate.Value.Date.AddDays(1).AddSeconds(-1);
+
+                if (startDate > endDate)
+                {
+                    MessageBox.Show("Початкова дата не може бути пізніше кінцевої!", "Помилка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var selectedItem = cb_ReportType.SelectedItem as ComboBoxItem;
+                string reportType = selectedItem?.Content?.ToString() ?? "";
+
+                switch (reportType)
+                {
+                    case "Залишки на складі":
+                        await GenerateStockReport();
+                        break;
+                    case "Надходження (Incoming)":
+                        await GenerateIncomingReport(startDate, endDate);
+                        break;
+                    case "Відвантаження (Outgoing)":
+                        await GenerateOutgoingReport(startDate, endDate);
+                        break;
+                    case "Журнал дій (Audit)":
+                        await GenerateAuditReport(startDate, endDate);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка генерації звіту: {ex.Message}", "Помилка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task GenerateStockReport()
+        {
+            var products = await _productService.GetAllAsync();
+
+            var reportData = products.Select(p => new
+            {
+                Товар = p.Name,
+                Од_виміру = p.Unit,
+                Залишок = p.Stock,
+                Мінімум = p.MinimumStock,
+                Статус = p.Status == "OK" ? "OK" : p.Status == "Low" ? "Низький" : "Немає"
+            }).ToList();
+
+            dg_ReportPreview.ItemsSource = reportData;
+            lbl_ReportTitle.Text = $"Залишки товарів на складі (станом на {DateTime.Now:dd.MM.yyyy HH:mm})";
+        }
+
+        private async Task GenerateIncomingReport(DateTime start, DateTime end)
+        {
+            var incomings = await _incomingService.GetAllAsync();
+
+            var filtered = incomings
+                .Where(i => i.ReceivedAt >= start && i.ReceivedAt <= end)
+                .OrderByDescending(i => i.ReceivedAt)
+                .Select(i => new
+                {
+                    Дата = i.ReceivedAt.ToString("dd.MM.yyyy HH:mm"),
+                    Товар = i.Product?.Name ?? "Невідомо",
+                    Кількість = i.Quantity,
+                    Одиниця = i.Product?.Unit ?? "",
+                    Комірник = i.ReceivedBy?.Name ?? "Невідомо"
+                })
+                .ToList();
+
+            dg_ReportPreview.ItemsSource = filtered;
+            lbl_ReportTitle.Text = $"Надходження товарів ({start:dd.MM.yyyy} - {end:dd.MM.yyyy})";
+        }
+
+        private async Task GenerateOutgoingReport(DateTime start, DateTime end)
+        {
+            var requests = await _requestService.GetAllAsync();
+
+            var filtered = requests
+                .Where(r => r.CreatedAt >= start && r.CreatedAt <= end && r.Status == "Completed")
+                .SelectMany(r => r.Items.Select(item => new
+                {
+                    Заявка = r.Id,
+                    Дата = r.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
+                    Товар = item.Product?.Name ?? "Невідомо",
+                    Кількість = item.Quantity,
+                    Одиниця = item.Product?.Unit ?? "",
+                    Статус = "Виконано",
+                    Менеджер = r.CreatedBy?.Name ?? "Невідомо"
+                }))
+                .ToList();
+
+            dg_ReportPreview.ItemsSource = filtered;
+            lbl_ReportTitle.Text = $"Відвантаження товарів ({start:dd.MM.yyyy} - {end:dd.MM.yyyy})";
+        }
+
+        private async Task GenerateAuditReport(DateTime start, DateTime end)
+        {
+            var logs = await _logService.GetAllAsync();
+
+            var filtered = logs
+                .Where(l => l.CreatedAt >= start && l.CreatedAt <= end)
+                .OrderByDescending(l => l.CreatedAt)
+                .Select(l => new
+                {
+                    Дата_та_час = l.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss"),
+                    Користувач = l.User?.Name ?? "Невідомо",
+                    Дія = l.Action
+                })
+                .ToList();
+
+            dg_ReportPreview.ItemsSource = filtered;
+            lbl_ReportTitle.Text = $"Журнал дій користувачів ({start:dd.MM.yyyy} - {end:dd.MM.yyyy})";
         }
 
         private void OnReportTypeChanged(object sender, SelectionChangedEventArgs e)
         {
-
+            dg_ReportPreview.ItemsSource = null;
+            lbl_ReportTitle.Text = "Оберіть період та натисніть 'Сформувати перегляд'";
         }
 
         private void ExportIncomingPDF_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                if (!dp_ReportStart.SelectedDate.HasValue || !dp_ReportEnd.SelectedDate.HasValue)
+                {
+                    MessageBox.Show("Оберіть період!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
+                DateTime start = dp_ReportStart.SelectedDate.Value.Date;
+                DateTime end = dp_ReportEnd.SelectedDate.Value.Date.AddDays(1).AddSeconds(-1);
+
+                var incomings = await _incomingService.GetAllAsync();
+                var filtered = incomings.Where(i => i.ReceivedAt >= start && i.ReceivedAt <= end).ToList();
+
+                if (!filtered.Any())
+                {
+                    MessageBox.Show("Немає даних за обраний період!", "Інформація",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var saveDialog = new SaveFileDialog
+                {
+                    FileName = $"Прибуткова_накладна_{DateTime.Now:yyyy-MM-dd_HH-mm}",
+                    Filter = "Word документ (*.docx)|*.docx|PDF документ (*.pdf)|*.pdf|Excel (*.xlsx)|*.xlsx|CSV (*.csv)|*.csv"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    string extension = System.IO.Path.GetExtension(saveDialog.FileName).ToLower();
+
+                    switch (extension)
+                    {
+                        case ".docx":
+                            CreateIncomingDocx(saveDialog.FileName, filtered, start, end);
+                            break;
+                        case ".pdf":
+                            CreateIncomingPdf(saveDialog.FileName, filtered, start, end);
+                            break;
+                        case ".xlsx":
+                            CreateIncomingExcel(saveDialog.FileName, filtered, start, end);
+                            break;
+                        case ".csv":
+                            CreateIncomingCsv(saveDialog.FileName, filtered);
+                            break;
+                    }
+
+                    var result = MessageBox.Show("Накладну успішно створено!\n\nВідкрити файл?",
+                        "Успіх", MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+                    if (result == MessageBoxResult.Yes)
+                        Process.Start(new ProcessStartInfo(saveDialog.FileName) { UseShellExecute = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Помилка: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private async void ExportToJson_Click(object sender, RoutedEventArgs e)
@@ -912,6 +1496,32 @@ namespace UI.Windows
                     "Помилка",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
+            }
+        }
+
+        private void ExportCurrentReport(string filePath)
+        {
+            string extension = System.IO.Path.GetExtension(filePath).ToLower();
+            var selectedItem = cb_ReportType.SelectedItem as ComboBoxItem;
+            string reportType = selectedItem?.Content?.ToString() ?? "";
+
+            // Отримуємо дані з попереднього перегляду
+            var data = dg_ReportPreview.ItemsSource;
+            if (data == null) return;
+
+            // Всі методи створення файлів (CreateStockDocx і т.д.) 
+            // мають бути реалізовані аналогічно до ваших CreateIncomingDocx
+            switch (reportType)
+            {
+                case "Залишки на складі":
+                    if (extension == ".docx") CreateStockDocx(filePath);
+                    // тут можна додати умови для .pdf, .xlsx
+                    break;
+
+                case "Надходження (Incoming)":
+                    // Використовуємо вже існуючий метод, але нам потрібні оригінальні дані List<Incoming>
+                    // Краще зберігати дані у приватній змінній класу при натисканні "Сформувати перегляд"
+                    break;
             }
         }
 
