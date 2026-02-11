@@ -3,7 +3,6 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Data.Context;
 using Data.Models;
-using DocumentFormat.OpenXml.Math;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using Service.Interfaces;
@@ -11,21 +10,22 @@ using Service.Services;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using Xceed.Words.NET;
-using Xceed.Document.NET;
-using iText.Kernel.Pdf;
-using iText.Layout;
-using iText.Layout.Element;
-using iText.Layout.Properties;
 using iText.Kernel.Font;
 using iText.IO.Font;
-using Alignment = Xceed.Document.NET.Alignment;
+using Document = iText.Layout.Document;
+
+using PdfParagraph = iText.Layout.Element.Paragraph;
+using PdfTable = iText.Layout.Element.Table;
+using PdfDocument = iText.Kernel.Pdf.PdfDocument;
+using PdfWriter = iText.Kernel.Pdf.PdfWriter;
+using PdfTextAlign = iText.Layout.Properties.TextAlignment;
+
+using WordAlignment = Xceed.Document.NET.Alignment;
 using TableDesign = Xceed.Document.NET.TableDesign;
 
 namespace UI.Windows
@@ -62,6 +62,8 @@ namespace UI.Windows
             _incomingService = new Service<Incoming>(context);
             _itemService = new Service<OutgoingItem>(context);
             _requestService = new Service<OutgoingRequest>(context);
+
+            cb_ReportType.SelectionChanged += OnReportTypeChanged;
 
             this.Loaded += AdminWindow_Loaded;
         }
@@ -846,15 +848,15 @@ namespace UI.Windows
                 var title = doc.InsertParagraph("ПРИБУТКОВА НАКЛАДНА")
                     .FontSize(18)
                     .Bold()
-                    .Alignment = Alignment.center;
+                    .Alignment = WordAlignment.center;
 
                 doc.InsertParagraph($"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}")
                     .FontSize(10)
-                    .Alignment = Alignment.center;
+                    .Alignment = WordAlignment.center;
 
                 doc.InsertParagraph($"Період: {start:dd.MM.yyyy} - {end:dd.MM.yyyy}")
                     .FontSize(10)
-                    .Alignment = Alignment.center;
+                    .Alignment = WordAlignment.center;
 
                 doc.InsertParagraph();
 
@@ -894,15 +896,15 @@ namespace UI.Windows
                 var title = doc.InsertParagraph("ВИДАТКОВА НАКЛАДНА")
                     .FontSize(18)
                     .Bold()
-                    .Alignment = Alignment.center;
+                    .Alignment = WordAlignment.center;
 
                 doc.InsertParagraph($"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}")
                     .FontSize(10)
-                    .Alignment = Alignment.center;
+                    .Alignment = WordAlignment.center;
 
                 doc.InsertParagraph($"Період: {start:dd.MM.yyyy} - {end:dd.MM.yyyy}")
                     .FontSize(10)
-                    .Alignment = Alignment.center;
+                    .Alignment = WordAlignment.center;
 
                 doc.InsertParagraph();
 
@@ -948,21 +950,19 @@ namespace UI.Windows
             using (var pdf = new PdfDocument(writer))
             using (var document = new Document(pdf))
             {
-                // Шрифт для кирилиці
                 var fontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf");
                 var font = PdfFontFactory.CreateFont(fontPath, PdfEncodings.IDENTITY_H);
                 document.SetFont(font);
 
-                document.Add(new Paragraph("ПРИБУТКОВА НАКЛАДНА")
+                document.Add(new PdfParagraph("ПРИБУТКОВА НАКЛАДНА")
                     .SetFontSize(18)
-                    .SetBold()
-                    .SetTextAlignment(TextAlignment.CENTER));
+                    .SetTextAlignment(PdfTextAlign.CENTER));
 
-                document.Add(new Paragraph($"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}")
+                document.Add(new PdfParagraph($"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}")
                     .SetFontSize(10)
-                    .SetTextAlignment(TextAlignment.CENTER));
+                    .SetTextAlignment(PdfTextAlign.CENTER));
 
-                var table = new Table(6);
+                var table = new PdfTable(6);
                 table.AddHeaderCell("№");
                 table.AddHeaderCell("Дата");
                 table.AddHeaderCell("Товар");
@@ -982,7 +982,7 @@ namespace UI.Windows
                 }
 
                 document.Add(table);
-                document.Add(new Paragraph($"\nВсього позицій: {data.Count}").SetBold());
+                document.Add(new PdfParagraph($"\nВсього позицій: {data.Count}"));
             }
         }
 
@@ -996,12 +996,11 @@ namespace UI.Windows
                 var font = PdfFontFactory.CreateFont(fontPath, PdfEncodings.IDENTITY_H);
                 document.SetFont(font);
 
-                document.Add(new Paragraph("ВИДАТКОВА НАКЛАДНА")
+                document.Add(new PdfParagraph("ВИДАТКОВА НАКЛАДНА")
                     .SetFontSize(18)
-                    .SetBold()
-                    .SetTextAlignment(TextAlignment.CENTER));
+                    .SetTextAlignment(PdfTextAlign.CENTER));
 
-                var table = new Table(7);
+                var table = new PdfTable(7);
                 table.AddHeaderCell("№");
                 table.AddHeaderCell("Заявка");
                 table.AddHeaderCell("Дата");
@@ -1030,7 +1029,6 @@ namespace UI.Windows
             }
         }
 
-        // ===== СТВОРЕННЯ EXCEL =====
         private void CreateIncomingExcel(string filePath, List<Incoming> data, DateTime start, DateTime end)
         {
             using (var workbook = new XLWorkbook())
@@ -1268,7 +1266,7 @@ namespace UI.Windows
             lbl_ReportTitle.Text = "Оберіть період та натисніть 'Сформувати перегляд'";
         }
 
-        private void ExportIncomingPDF_Click(object sender, RoutedEventArgs e)
+        private async void ExportIncomingPDF_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -1327,6 +1325,169 @@ namespace UI.Windows
             catch (Exception ex)
             {
                 MessageBox.Show($"Помилка: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ExportCurrentReport(string filePath)
+        {
+            var items = dg_ReportPreview.ItemsSource;
+            if (items == null) return;
+
+            string extension = System.IO.Path.GetExtension(filePath).ToLower();
+            var reportTitle = lbl_ReportTitle.Text;
+
+            switch (extension)
+            {
+                case ".docx":
+                    ExportToDocx(filePath, items, reportTitle);
+                    break;
+                case ".pdf":
+                    ExportToPdf(filePath, items, reportTitle);
+                    break;
+                case ".xlsx":
+                    ExportToExcel(filePath, items, reportTitle);
+                    break;
+                case ".csv":
+                    ExportToCsv(filePath, items);
+                    break;
+            }
+        }
+
+        private void ExportToDocx(string filePath, object data, string title)
+        {
+            using (var doc = DocX.Create(filePath))
+            {
+                doc.InsertParagraph(title)
+                    .FontSize(16)
+                    .Bold()
+                    .Alignment = WordAlignment.center;
+
+                doc.InsertParagraph($"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}")
+                    .FontSize(10)
+                    .Alignment = WordAlignment.center;
+
+                doc.InsertParagraph();
+
+                var list = ((System.Collections.IEnumerable)data).Cast<object>().ToList();
+                if (!list.Any()) return;
+
+                var properties = list[0].GetType().GetProperties();
+                var table = doc.AddTable(list.Count + 1, properties.Length);
+                table.Design = TableDesign.LightGridAccent1;
+
+                for (int i = 0; i < properties.Length; i++)
+                {
+                    table.Rows[0].Cells[i].Paragraphs[0].Append(properties[i].Name).Bold();
+                }
+
+                for (int row = 0; row < list.Count; row++)
+                {
+                    for (int col = 0; col < properties.Length; col++)
+                    {
+                        var value = properties[col].GetValue(list[row])?.ToString() ?? "";
+                        table.Rows[row + 1].Cells[col].Paragraphs[0].Append(value);
+                    }
+                }
+
+                doc.InsertTable(table);
+                doc.InsertParagraph();
+                doc.InsertParagraph($"Всього записів: {list.Count}").Bold();
+
+                doc.Save();
+            }
+        }
+
+        private void ExportToPdf(string filePath, object data, string title)
+        {
+            using (var writer = new PdfWriter(filePath))
+            using (var pdf = new PdfDocument(writer))
+            using (var document = new Document(pdf))
+            {
+                var fontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf");
+                var font = PdfFontFactory.CreateFont(fontPath, PdfEncodings.IDENTITY_H);
+                document.SetFont(font);
+
+                document.Add(new PdfParagraph(title)
+                    .SetFontSize(16)
+                    .SetTextAlignment(PdfTextAlign.CENTER));
+
+                document.Add(new PdfParagraph($"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}")
+                    .SetFontSize(10)
+                    .SetTextAlignment(PdfTextAlign.CENTER));
+
+                document.Add(new PdfParagraph("\n"));
+
+                var list = ((System.Collections.IEnumerable)data).Cast<object>().ToList();
+                if (!list.Any()) return;
+
+                var properties = list[0].GetType().GetProperties();
+                var table = new PdfTable(properties.Length);
+
+                foreach (var prop in properties)
+                {
+                    table.AddHeaderCell(new iText.Layout.Element.Cell().Add(new PdfParagraph(prop.Name)));
+                }
+
+                foreach (var item in list)
+                {
+                    foreach (var prop in properties)
+                    {
+                        var value = prop.GetValue(item)?.ToString() ?? "";
+                        table.AddCell(value);
+                    }
+                }
+
+                document.Add(table);
+                document.Add(new PdfParagraph($"\nВсього записів: {list.Count}"));
+            }
+        }
+
+        private void ExportToExcel(string filePath, object data, string title)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Звіт");
+
+                var list = ((System.Collections.IEnumerable)data).Cast<object>().ToList();
+                if (!list.Any()) return;
+
+                worksheet.Cell(1, 1).Value = title;
+                var properties = list[0].GetType().GetProperties();
+                worksheet.Range(1, 1, 1, properties.Length).Merge().Style.Font.Bold = true;
+                worksheet.Range(1, 1, 1, properties.Length).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                worksheet.Cell(2, 1).Value = $"Дата формування: {DateTime.Now:dd.MM.yyyy HH:mm}";
+                worksheet.Range(2, 1, 2, properties.Length).Merge();
+
+                for (int i = 0; i < properties.Length; i++)
+                {
+                    worksheet.Cell(4, i + 1).Value = properties[i].Name;
+                    worksheet.Cell(4, i + 1).Style.Font.Bold = true;
+                }
+
+                for (int row = 0; row < list.Count; row++)
+                {
+                    for (int col = 0; col < properties.Length; col++)
+                    {
+                        var value = properties[col].GetValue(list[row]);
+                        worksheet.Cell(row + 5, col + 1).Value = value?.ToString() ?? "";
+                    }
+                }
+
+                worksheet.Columns().AdjustToContents();
+                workbook.SaveAs(filePath);
+            }
+        }
+
+        private void ExportToCsv(string filePath, object data)
+        {
+            using (var writer = new StreamWriter(filePath))
+            using (var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture)))
+            {
+                var list = ((System.Collections.IEnumerable)data).Cast<object>().ToList();
+                if (!list.Any()) return;
+
+                csv.WriteRecords(list);
             }
         }
 
@@ -1496,32 +1657,6 @@ namespace UI.Windows
                     "Помилка",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
-            }
-        }
-
-        private void ExportCurrentReport(string filePath)
-        {
-            string extension = System.IO.Path.GetExtension(filePath).ToLower();
-            var selectedItem = cb_ReportType.SelectedItem as ComboBoxItem;
-            string reportType = selectedItem?.Content?.ToString() ?? "";
-
-            // Отримуємо дані з попереднього перегляду
-            var data = dg_ReportPreview.ItemsSource;
-            if (data == null) return;
-
-            // Всі методи створення файлів (CreateStockDocx і т.д.) 
-            // мають бути реалізовані аналогічно до ваших CreateIncomingDocx
-            switch (reportType)
-            {
-                case "Залишки на складі":
-                    if (extension == ".docx") CreateStockDocx(filePath);
-                    // тут можна додати умови для .pdf, .xlsx
-                    break;
-
-                case "Надходження (Incoming)":
-                    // Використовуємо вже існуючий метод, але нам потрібні оригінальні дані List<Incoming>
-                    // Краще зберігати дані у приватній змінній класу при натисканні "Сформувати перегляд"
-                    break;
             }
         }
 
