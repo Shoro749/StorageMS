@@ -407,9 +407,9 @@
                         </StackPanel>
 
                         <DataGrid x:Name="dg_productList" Grid.Row="1" Background="#1E1E1E" 
-          Foreground="White" RowBackground="#1E1E1E" AlternatingRowBackground="#252525"
-          BorderThickness="0" GridLinesVisibility="None" AutoGenerateColumns="False"
-          CanUserAddRows="False" SelectionMode="Single">
+                              Foreground="White" RowBackground="#1E1E1E" AlternatingRowBackground="#252525"
+                              BorderThickness="0" GridLinesVisibility="None" AutoGenerateColumns="False"
+                              CanUserAddRows="False" SelectionMode="Single">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="Назва" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
@@ -460,7 +460,7 @@
 
                                                 <Button Content="ВИДАЛИТИ" Background="#F44336" Foreground="White" 
                                                     FontSize="10" FontWeight="Bold" Padding="5,2" 
-                                                    BorderThickness="0" Cursor="Hand" Click="DeleteProductFromGrid_Click">
+                                                    BorderThickness="0" Cursor="Hand" Click="DeleteProduct_Click">
                                                 </Button>
                                             </StackPanel>
                                         </DataTemplate>

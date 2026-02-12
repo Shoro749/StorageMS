@@ -85,8 +85,10 @@
                        FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
 
                 <Border Grid.Row="2" Background="#181818" CornerRadius="8" Padding="5">
-                    <DataGrid x:Name="dg_OrderItems" Background="Transparent" Foreground="White" 
-                          AutoGenerateColumns="False" CanUserAddRows="False" GridLinesVisibility="None">
+                    <DataGrid x:Name="dg_OrderItems" Background="#1E1E1E" 
+                              Foreground="White" RowBackground="#1E1E1E" AlternatingRowBackground="#252525"
+                              BorderThickness="0" GridLinesVisibility="None" AutoGenerateColumns="False"
+                              CanUserAddRows="False" SelectionMode="Single">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Товар" Binding="{Binding Product.Name}" Width="*"/>
                             <DataGridTextColumn Header="Доступно" Binding="{Binding Product.Stock}" Width="80"/>

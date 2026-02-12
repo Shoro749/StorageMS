@@ -27,6 +27,8 @@ namespace UI.Windows
             InitializeComponent();
             _user = user;
             _productService = new Service<Product>(context);
+            _requestService = new Service<OutgoingRequest>(context);
+            _itemService = new Service<OutgoingItem>(context);
             _or = or;
 
             Loaded += Window_Loaded;
@@ -52,6 +54,8 @@ namespace UI.Windows
                     tb_Comment.Text = _or.Comment;
                 }
                 else tb_windowTitle.Text = "СТВОРЕННЯ СКЛАДУ ЗАЯВКИ";
+
+                dg_OrderItems.ItemsSource = _items;
             }
             catch (Exception ex)
             {
@@ -99,6 +103,18 @@ namespace UI.Windows
                     };
 
                     _or = await _requestService.CreateAsync(newRequest);
+
+                    foreach (var item in _items)
+                    {
+                        var newItem = new OutgoingItem
+                        {
+                            Quantity = item.Quantity,
+                            Request = _or,
+                            Product = item.Product
+                        };
+
+                        await _itemService.CreateAsync(newItem);
+                    }
 
                     MessageBox.Show("Заявку успішно створено!", "Успіх",
                         MessageBoxButton.OK, MessageBoxImage.Information);
