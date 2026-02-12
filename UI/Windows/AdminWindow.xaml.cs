@@ -3,6 +3,9 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Data.Context;
 using Data.Models;
+using DocumentFormat.OpenXml.Wordprocessing;
+using iText.IO.Font;
+using iText.Kernel.Font;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using Service.Interfaces;
@@ -15,18 +18,14 @@ using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using Xceed.Words.NET;
-using iText.Kernel.Font;
-using iText.IO.Font;
 using Document = iText.Layout.Document;
-
+using PdfDocument = iText.Kernel.Pdf.PdfDocument;
 using PdfParagraph = iText.Layout.Element.Paragraph;
 using PdfTable = iText.Layout.Element.Table;
-using PdfDocument = iText.Kernel.Pdf.PdfDocument;
-using PdfWriter = iText.Kernel.Pdf.PdfWriter;
 using PdfTextAlign = iText.Layout.Properties.TextAlignment;
-
-using WordAlignment = Xceed.Document.NET.Alignment;
+using PdfWriter = iText.Kernel.Pdf.PdfWriter;
 using TableDesign = Xceed.Document.NET.TableDesign;
+using WordAlignment = Xceed.Document.NET.Alignment;
 
 namespace UI.Windows
 {
@@ -619,6 +618,10 @@ namespace UI.Windows
                 b_productDetailsPanel.Visibility = Visibility.Collapsed;
                 _chosenProduct = null;
 
+                var newLog = await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has edited product (id={result.Id}).", User = _currentUser });
+                _logs.Add(newLog);
+                UpdateLogList(_logs);
+
                 MessageBox.Show("Товар успішно оновлено!", "Успіх",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -646,6 +649,10 @@ namespace UI.Windows
                     _products.Remove(_chosenProduct);
                     UpdateProductList(_products);
                     ApplyProductFilters();
+
+                    var newLog = await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has deleted product {_chosenProduct}.", User = _currentUser });
+                    _logs.Add(newLog);
+                    UpdateLogList(_logs);
 
                     b_productDetailsPanel.Visibility = Visibility.Collapsed;
                     _chosenProduct = null;
@@ -718,12 +725,16 @@ namespace UI.Windows
                 };
 
                 var createdProduct = await _productService.CreateAsync(newProduct);
+                var newLog = await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has created new product {name}.", User = _currentUser });
 
                 _products.Add(createdProduct);
                 UpdateProductList(_products);
                 ApplyProductFilters();
 
                 b_createProductPanel.Visibility = Visibility.Collapsed;
+
+                _logs.Add(newLog);
+                UpdateLogList(_logs);
 
                 MessageBox.Show("Товар успішно створено!", "Успіх",
                     MessageBoxButton.OK, MessageBoxImage.Information);

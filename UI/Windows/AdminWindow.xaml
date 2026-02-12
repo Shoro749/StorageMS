@@ -447,15 +447,22 @@
                                 <DataGridTemplateColumn Header="Дії" Width="120">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Content="РЕДАГУВАТИ" Background="#D2B48C" Foreground="#1E1E1E" 
-                            FontSize="10" FontWeight="Bold" Padding="5,2" BorderThickness="0" 
-                            Cursor="Hand" Click="ProductDetails_Click">
-                                                <Button.Resources>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="CornerRadius" Value="3"/>
-                                                    </Style>
-                                                </Button.Resources>
-                                            </Button>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="РЕДАГУВАТИ" Background="#D2B48C" Foreground="#1E1E1E" 
+                                                    FontSize="10" FontWeight="Bold" Padding="5,2" BorderThickness="0" 
+                                                    Cursor="Hand" Click="ProductDetails_Click">
+                                                    <Button.Resources>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="CornerRadius" Value="3"/>
+                                                        </Style>
+                                                    </Button.Resources>
+                                                </Button>
+
+                                                <Button Content="ВИДАЛИТИ" Background="#F44336" Foreground="White" 
+                                                    FontSize="10" FontWeight="Bold" Padding="5,2" 
+                                                    BorderThickness="0" Cursor="Hand" Click="DeleteProductFromGrid_Click">
+                                                </Button>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
