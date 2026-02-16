@@ -20,7 +20,7 @@ namespace UI.Windows
         private readonly IService<Product> _productService;
         private readonly IService<ActionLog> _logService;
         private readonly IService<Incoming> _incomingService;
-        private readonly IService<OutgoingRequest> _requestService;
+        private readonly IRequestService _requestService;
 
         private OutgoingRequest _chosenRequest = null;
         private Product _selectedProduct = null;
@@ -35,7 +35,7 @@ namespace UI.Windows
             _productService = new Service<Product>(context);
             _logService = new Service<ActionLog>(context);
             _incomingService = new Service<Incoming>(context);
-            _requestService = new Service<OutgoingRequest>(context);
+            _requestService = new RequestService(context);
 
             Loaded += AdminWindow_Loaded;
         }
@@ -51,7 +51,7 @@ namespace UI.Windows
             {
                 _products = await _productService.GetAllAsync();
                 _incomings = await _incomingService.GetAllAsync();
-                _requests = await _requestService.GetAllAsync();
+                _requests = await _requestService.GetRequestWithItems();
                 _requests = _requests.OrderByDescending(r => r.CreatedAt).ToList();
 
                 dg_ProductsStock.ItemsSource = _products;

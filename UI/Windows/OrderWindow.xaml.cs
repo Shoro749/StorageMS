@@ -115,9 +115,6 @@ namespace UI.Windows
 
                         await _itemService.CreateAsync(newItem);
                     }
-
-                    MessageBox.Show("Заявку успішно створено!", "Успіх",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
@@ -144,9 +141,6 @@ namespace UI.Windows
                     }
 
                     _or = await _requestService.UpdateAsync(_or.Id, _or);
-
-                    MessageBox.Show("Заявку успішно оновлено!", "Успіх",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
 
                 DialogResult = true;

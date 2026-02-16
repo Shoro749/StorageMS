@@ -2,6 +2,7 @@
 using Data.Models;
 using Service.Interfaces;
 using Service.Services;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -18,7 +19,7 @@ namespace UI.Windows
         private readonly IService<Product> _productService;
         private readonly DataContext _dataContext;
 
-        private List<OutgoingRequest> _requests;
+        private ObservableCollection<OutgoingRequest> _requests;
         private List<Product> _products;
         public ManagerWindow(User user, DataContext context)
         {
@@ -42,7 +43,8 @@ namespace UI.Windows
             try
             {
                 _products = await _productService.GetAllAsync();
-                _requests = await _requestService.GetAllAsync();
+                var requestsList = await _requestService.GetAllAsync();
+                _requests = new ObservableCollection<OutgoingRequest>(requestsList);
 
                 dg_Orders.ItemsSource = _requests;
                 dg_ProductsStock.ItemsSource = _products;
