@@ -13,6 +13,7 @@ using Service.Services;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
@@ -42,7 +43,7 @@ namespace UI.Windows
         private readonly IService<Product> _productService;
         private readonly IService<Incoming> _incomingService;
         private readonly IService<OutgoingItem> _itemService;
-        private readonly IService<OutgoingRequest> _requestService;
+        private readonly IRequestService _requestService;
         
         private List<User> _users;
         private List<Product> _products = new List<Product>();
@@ -60,7 +61,7 @@ namespace UI.Windows
             _productService = new Service<Product>(context);
             _incomingService = new Service<Incoming>(context);
             _itemService = new Service<OutgoingItem>(context);
-            _requestService = new Service<OutgoingRequest>(context);
+            _requestService = new RequestService(context);
 
             cb_ReportType.SelectionChanged += OnReportTypeChanged;
 
@@ -1227,7 +1228,7 @@ namespace UI.Windows
 
         private async Task GenerateOutgoingReport(DateTime start, DateTime end)
         {
-            var requests = await _requestService.GetAllAsync();
+            var requests = await _requestService.GetRequestWithItems();
 
             var filtered = requests
                 .Where(r => r.CreatedAt >= start && r.CreatedAt <= end && r.Status == "Completed")
@@ -1487,7 +1488,7 @@ namespace UI.Windows
 
         private void ExportToCsv(string filePath, object data)
         {
-            using (var writer = new StreamWriter(filePath))
+            using (var writer = new StreamWriter(filePath, false, new UTF8Encoding(true)))
             using (var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture)))
             {
                 var list = ((System.Collections.IEnumerable)data).Cast<object>().ToList();
