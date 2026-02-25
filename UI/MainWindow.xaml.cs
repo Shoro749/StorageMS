@@ -23,7 +23,7 @@ namespace UI
             InitializeComponent();
             _context = new DataContext();
             _userService = new UserService(_context);
-            //Seeder();
+            Seeder();
         }
 
         private async void Login_Click(object sender, RoutedEventArgs e)
@@ -53,21 +53,21 @@ namespace UI
                     return;
                 }
 
-                switch (user.Role.Id)
+                switch (user.Role.Name)
                 {
-                    case 1:
+                    case "Admin":
                         AdminWindow adminWindow = new AdminWindow(user, _context);
                         Application.Current.MainWindow = adminWindow;
                         adminWindow.Show();
                         break;
 
-                    case 2:
+                    case "Manager":
                         ManagerWindow managerWindow = new ManagerWindow(user, _context);
                         Application.Current.MainWindow = managerWindow;
                         managerWindow.Show();
                         break;
 
-                    case 3:
+                    case "Storekeeper":
                         StorekeeperWindow storekeeperWindow = new StorekeeperWindow(user, _context);
                         Application.Current.MainWindow = storekeeperWindow;
                         storekeeperWindow.Show();
@@ -82,64 +82,28 @@ namespace UI
         {
             try
             {
-                //IService<Role> role = new Service<Role>(_context);
+                IService<Role> role = new Service<Role>(_context);
 
-                //Role role1 = new Role { Name = "Admin" };
-                //Role role2 = new Role { Name = "Manager" };
-                //Role role3 = new Role { Name = "Storekeeper" };
+                var roles = await role.GetAllAsync();
 
-                //User admin = new User
-                //{
-                //    Name = "admin",
-                //    PasswordHash = PasswordHasher.HashPassword("admin"),
-                //    Role = await role.GetByIdAsync(1),
-                //};
+                if (roles.Count > 0) return;
 
-                //await _userService.CreateAsync(admin);
-                //await role.CreateAsync(role2);
-                //await role.CreateAsync(role3);
+                Role role1 = new Role { Name = "Admin" };
+                Role role2 = new Role { Name = "Manager" };
+                Role role3 = new Role { Name = "Storekeeper" };
+                
+                role1 = await role.CreateAsync(role1);
+                await role.CreateAsync(role2);
+                await role.CreateAsync(role3);
 
-                var user = await _userService.GetByUsername("Tony Pepperoni");
-
-                var products = new List<Product>
+                User admin = new User
                 {
-                    new Product { Name = "Кабель живлення 1.5м", Unit = "шт", Stock = 50, MinimumStock = 10, Description = "Мідний кабель" },
-                    new Product { Name = "Монітор 24\" IPS", Unit = "шт", Stock = 3, MinimumStock = 5, Description = "Офісний монітор" },
-                    new Product { Name = "Мишка бездротова", Unit = "шт", Stock = 0, MinimumStock = 5, Description = "Logitech B170" },
-                    new Product { Name = "Клавіатура мембранна", Unit = "шт", Stock = 15, MinimumStock = 5, Description = "Стандартна USB" },
-                    new Product { Name = "Патч-корд 3м", Unit = "шт", Stock = 100, MinimumStock = 20, Description = "CAT5e" }
-                };
-                var requests = new List<OutgoingRequest>
-                {
-                    new OutgoingRequest { Status = "Completed", Comment = "Для відділу маркетингу", CreatedAt = DateTime.Now.AddDays(-5), CreatedBy = user },
-                    new OutgoingRequest { Status = "Pending", Comment = "Термінова заміна обладнання", CreatedAt = DateTime.Now.AddDays(-2), CreatedBy = user },
-                    new OutgoingRequest { Status = "Rejected", Comment = "Не вказано причину видачі", CreatedAt = DateTime.Now.AddDays(-1), CreatedBy = user },
-                    new OutgoingRequest { Status = "Completed", Comment = "Облаштування нового робочого місця", CreatedAt = DateTime.Now.AddHours(-10), CreatedBy = user },
-                    new OutgoingRequest { Status = "Pending", Comment = "Запасні комплектуючі на склад", CreatedAt = DateTime.Now.AddHours(-2), CreatedBy = user }
+                    Name = "admin",
+                    PasswordHash = PasswordHasher.HashPassword("admin"),
+                    Role = role1,
                 };
 
-                await _context.Products.AddRangeAsync(products);
-                await _context.OutgoingRequests.AddRangeAsync(requests);
-                await _context.SaveChangesAsync();
-
-                var items = new List<OutgoingItem>
-                {
-                    // До заявки №1
-                    new OutgoingItem { Quantity = 2, Product = products[0], Request = requests[0] },
-                    new OutgoingItem { Quantity = 1, Product = products[3], Request = requests[0] },
-    
-                    // До заявки №2
-                    new OutgoingItem { Quantity = 1, Product = products[1], Request = requests[1] },
-    
-                    // До заявки №4
-                    new OutgoingItem { Quantity = 5, Product = products[4], Request = requests[3] },
-    
-                    // До заявки №5
-                    new OutgoingItem { Quantity = 10, Product = products[0], Request = requests[4] }
-                };
-
-                await _context.OutgoingItems.AddRangeAsync(items);
-                await _context.SaveChangesAsync();
+                await _userService.CreateAsync(admin);
             }
             catch (DbUpdateException ex)
             {

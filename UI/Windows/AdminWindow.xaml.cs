@@ -1661,6 +1661,11 @@ namespace UI.Windows
                     System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
                 Application.Current.Shutdown();
             }
+            catch (DbUpdateException ex)
+            {
+                var message = ex.InnerException?.Message ?? ex.Message;
+                MessageBox.Show($"Помилка бази даних: {message}");
+            }
             catch (Exception ex)
             {
                 MessageBox.Show(
@@ -1704,26 +1709,131 @@ namespace UI.Windows
 
         private async Task RestoreData(BackupData backup)
         {
+            var roleIdMap = new Dictionary<int, int>();
+            var userIdMap = new Dictionary<int, int>();
+            var productIdMap = new Dictionary<int, int>();
+            var requestIdMap = new Dictionary<int, int>();
+
             foreach (var role in backup.Roles)
-                await _roleService.CreateAsync(role);
+            {
+                int oldId = role.Id;
+                var newRole = new Role
+                {
+                    Name = role.Name,
+                };
+
+                var createdRole = await _roleService.CreateAsync(newRole);
+                roleIdMap[oldId] = createdRole.Id;
+            }
 
             foreach (var user in backup.Users)
-                await _userService.CreateAsync(user);
+            {
+                int oldId = user.Id;
+                int oldRoleId = user.Role?.Id ?? 0;
+
+                var newUser = new User
+                {
+                    Name = user.Name,
+                    PasswordHash = user.PasswordHash,
+                    Role = oldRoleId > 0 && roleIdMap.ContainsKey(oldRoleId)
+                        ? await _roleService.GetByIdAsync(roleIdMap[oldRoleId])
+                        : null
+                };
+
+                var createdUser = await _userService.CreateAsync(newUser);
+                userIdMap[oldId] = createdUser.Id;
+            }
 
             foreach (var product in backup.Products)
-                await _productService.CreateAsync(product);
+            {
+                int oldId = product.Id;
+                var newProduct = new Product
+                {
+                    Name = product.Name,
+                    Description = product.Description,
+                    Unit = product.Unit,
+                    Stock = product.Stock,
+                    MinimumStock = product.MinimumStock,
+                    CreatedAt = product.CreatedAt
+                };
+
+                var createdProduct = await _productService.CreateAsync(newProduct);
+                productIdMap[oldId] = createdProduct.Id;
+            }
 
             foreach (var incoming in backup.Incomings)
-                await _incomingService.CreateAsync(incoming);
+            {
+                int oldProductId = incoming.Product?.Id ?? 0;
+                int oldUserId = incoming.ReceivedBy?.Id ?? 0;
+
+                var newIncoming = new Incoming
+                {
+                    Quantity = incoming.Quantity,
+                    ReceivedAt = incoming.ReceivedAt,
+                    Product = oldProductId > 0 && productIdMap.ContainsKey(oldProductId)
+                        ? await _productService.GetByIdAsync(productIdMap[oldProductId])
+                        : null,
+                    ReceivedBy = oldUserId > 0 && userIdMap.ContainsKey(oldUserId)
+                        ? await _userService.GetByIdAsync(userIdMap[oldUserId])
+                        : null
+                };
+
+                await _incomingService.CreateAsync(newIncoming);
+            }
 
             foreach (var request in backup.OutgoingRequests)
-                await _requestService.CreateAsync(request);
+            {
+                int oldId = request.Id;
+                int oldUserId = request.CreatedBy?.Id ?? 0;
+
+                var newRequest = new OutgoingRequest
+                {
+                    Status = request.Status,
+                    Comment = request.Comment,
+                    CreatedAt = request.CreatedAt,
+                    CreatedBy = oldUserId > 0 && userIdMap.ContainsKey(oldUserId)
+                        ? await _userService.GetByIdAsync(userIdMap[oldUserId])
+                        : null
+                };
+
+                var createdRequest = await _requestService.CreateAsync(newRequest);
+                requestIdMap[oldId] = createdRequest.Id;
+            }
 
             foreach (var item in backup.OutgoingItems)
-                await _itemService.CreateAsync(item);
+            {
+                int oldRequestId = item.Request?.Id ?? 0;
+                int oldProductId = item.Product?.Id ?? 0;
+
+                var newItem = new OutgoingItem
+                {
+                    Quantity = item.Quantity,
+                    Request = oldRequestId > 0 && requestIdMap.ContainsKey(oldRequestId)
+                        ? await _requestService.GetByIdAsync(requestIdMap[oldRequestId])
+                        : null,
+                    Product = oldProductId > 0 && productIdMap.ContainsKey(oldProductId)
+                        ? await _productService.GetByIdAsync(productIdMap[oldProductId])
+                        : null
+                };
+
+                await _itemService.CreateAsync(newItem);
+            }
 
             foreach (var log in backup.ActionLogs)
-                await _logService.CreateAsync(log);
+            {
+                int oldUserId = log.User?.Id ?? 0;
+
+                var newLog = new ActionLog
+                {
+                    Action = log.Action,
+                    CreatedAt = log.CreatedAt,
+                    User = oldUserId > 0 && userIdMap.ContainsKey(oldUserId)
+                        ? await _userService.GetByIdAsync(userIdMap[oldUserId])
+                        : null
+                };
+
+                await _logService.CreateAsync(newLog);
+            }
         }
     }
 }
