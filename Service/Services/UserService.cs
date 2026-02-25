@@ -18,5 +18,10 @@ namespace Service.Services
         {
             return await _repository.GetByUsername(username);
         }
+
+        public async Task<User?> UpdateUserAsync(int id, string name, string passwordHash, Role role)
+        {
+            return await _repository.UpdateUserAsync(id, name, passwordHash, role);
+        }
     }
 }

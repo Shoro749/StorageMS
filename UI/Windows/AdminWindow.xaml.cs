@@ -180,36 +180,31 @@ namespace UI.Windows
                 }
 
                 var existingUser = await _userService.GetByUsername(name);
-
                 if (existingUser != null && existingUser.Id != _chosenUser.Id)
                 {
                     MessageBox.Show($"The user with name {name} is already exists.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                User newUser;
+                string passwordHash;
                 if (string.IsNullOrEmpty(password))
                 {
-                    newUser = new User
-                    {
-                        Id = _chosenUser.Id,
-                        Name = name,
-                        PasswordHash = PasswordHasher.HashPassword(password),
-                        Role = role,
-                    };
+                    passwordHash = _chosenUser.PasswordHash;
                 }
                 else
                 {
-                    newUser = new User
-                    {
-                        Id = _chosenUser.Id,
-                        Name = name,
-                        PasswordHash = _chosenUser.PasswordHash,
-                        Role = role,
-                    };
-                }  
+                    passwordHash = PasswordHasher.HashPassword(password);
+                }
 
-                var updatedUser = await _userService.UpdateAsync(newUser.Id, newUser);
+                var newUser = new User
+                {
+                    Id = _chosenUser.Id,
+                    Name = name,
+                    PasswordHash = passwordHash,
+                    Role = role
+                };
+
+                var updatedUser = await _userService.UpdateUserAsync(newUser.Id, newUser.Name, newUser.PasswordHash, newUser.Role);
                 await _logService.CreateAsync(new ActionLog { Action = $"{_currentUser.Name} has updated user {name} -> {updatedUser.Name}.", User = _currentUser });
 
                 _users.Remove(_chosenUser);

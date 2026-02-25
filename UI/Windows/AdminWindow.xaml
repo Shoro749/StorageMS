@@ -448,7 +448,7 @@
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
-                                                <Button Content="РЕДАГУВАТИ" Background="#D2B48C" Foreground="#1E1E1E" 
+                                                <Button Content="ПЕРЕГЛЯНУТИ" Background="#D2B48C" Foreground="#1E1E1E" 
                                                     FontSize="10" FontWeight="Bold" Padding="5,2" BorderThickness="0" 
                                                     Cursor="Hand" Click="ProductDetails_Click">
                                                     <Button.Resources>
@@ -456,11 +456,6 @@
                                                             <Setter Property="CornerRadius" Value="3"/>
                                                         </Style>
                                                     </Button.Resources>
-                                                </Button>
-
-                                                <Button Content="ВИДАЛИТИ" Background="#F44336" Foreground="White" 
-                                                    FontSize="10" FontWeight="Bold" Padding="5,2" 
-                                                    BorderThickness="0" Cursor="Hand" Click="DeleteProduct_Click">
                                                 </Button>
                                             </StackPanel>
                                         </DataTemplate>

@@ -13,5 +13,21 @@ namespace Repository.Repositories
         {
             return await _dbSet.Include(u => u.Role).FirstOrDefaultAsync(u => u.Name == username);
         }
+
+        public async Task<User?> UpdateUserAsync(int id, string name, string passwordHash, Role role)
+        {
+            var existing = await _dbSet
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (existing == null) return null;
+
+            existing.Name = name;
+            existing.PasswordHash = passwordHash;
+            existing.Role = role;
+
+            await _context.SaveChangesAsync();
+            return existing;
+        }
     }
 }

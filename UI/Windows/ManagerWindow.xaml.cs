@@ -15,7 +15,7 @@ namespace UI.Windows
     {
         private readonly User _currentUser;
         private readonly IService<ActionLog> _logService;
-        private readonly IService<OutgoingRequest> _requestService;
+        private readonly IRequestService _requestService;
         private readonly IService<Product> _productService;
         private readonly DataContext _dataContext;
 
@@ -26,7 +26,7 @@ namespace UI.Windows
             InitializeComponent();
             _currentUser = user;
             _logService = new Service<ActionLog>(context);
-            _requestService = new Service<OutgoingRequest>(context);
+            _requestService = new RequestService(context);
             _productService = new Service<Product>(context);
             _dataContext = context;
 
@@ -43,7 +43,7 @@ namespace UI.Windows
             try
             {
                 _products = await _productService.GetAllAsync();
-                var requestsList = await _requestService.GetAllAsync();
+                var requestsList = await _requestService.GetRequestWithItems();
                 _requests = new ObservableCollection<OutgoingRequest>(requestsList);
 
                 dg_Orders.ItemsSource = _requests;
